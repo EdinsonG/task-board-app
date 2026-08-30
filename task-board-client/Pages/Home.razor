@@ -1,0 +1,178 @@
+﻿@page "/"
+@inject HttpClient Http
+@using task_board_client.Models
+
+<PageTitle>Tablero Kanban</PageTitle>
+
+<h1 class="my-4 text-center">Tablero Kanban .NET</h1>
+
+@if (columns == null)
+{
+    <p>Cargando tablero...</p>
+}
+else
+{
+    <div class="kanban-board">
+        @foreach (var column in columns)
+        {
+            <div class="kanban-column" 
+                 ondragover="event.preventDefault();" 
+                 @ondrop="() => HandleDrop(column.Id)">
+                
+                <h3>@column.Name</h3>
+                
+                <div class="task-list">
+                    @foreach (var task in column.Tasks)
+                    {
+                        <div class="task-card" 
+                             draggable="true" 
+                             @ondragstart="() => HandleDragStart(task.Id)">
+                            
+                            <div class="task-header">
+                                <strong>@task.Title</strong>
+                                <button class="btn-delete" @onclick="() => DeleteTask(task.Id)">&#10005;</button>
+                            </div>
+                            <p>@task.Description</p>
+                        </div>
+                    }
+                </div>
+
+                <div class="add-task-box">
+                    <input type="text" placeholder="Nueva tarea..." @bind="newTaskTitles[column.Id]" />
+                    <button @onclick="() => CreateTask(column.Id)">+ Agregar</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .kanban-board {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        padding: 20px;
+        overflow-x: auto;
+    }
+
+    .kanban-column {
+        background-color: #f1f5f9;
+        border-radius: 8px;
+        width: 300px;
+        padding: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+    .task-list {
+        min-height: 100px;
+        margin-top: 12px;
+    }
+
+    .task-card {
+        background-color: white;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        cursor: grab;
+    }
+
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-delete {
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+    }
+
+    .add-task-box {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+    }
+
+    .add-task-box input {
+        flex: 1;
+        padding: 6px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+    }
+
+    .add-task-box button {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+
+@code {
+    private List<ColumnItem>? columns;
+    private Dictionary<int, string> newTaskTitles = new();
+    private int draggedTaskId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoard();
+    }
+
+    private async Task LoadBoard()
+    {
+        columns = await Http.GetFromJsonAsync<List<ColumnItem>>("api/kanban");
+        if (columns != null)
+        {
+            foreach (var col in columns)
+            {
+                if (!newTaskTitles.ContainsKey(col.Id))
+                    newTaskTitles[col.Id] = string.Empty;
+            }
+        }
+    }
+
+    private void HandleDragStart(int taskId)
+    {
+        draggedTaskId = taskId;
+    }
+
+    private async Task HandleDrop(int targetColumnId)
+    {
+        if (draggedTaskId == 0) return;
+
+        var dto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
+        await Http.PostAsJsonAsync("api/kanban/move-task", dto);
+        
+        draggedTaskId = 0;
+        await LoadBoard();
+    }
+
+    private async Task CreateTask(int columnId)
+    {
+        if (!newTaskTitles.TryGetValue(columnId, out var title) || string.IsNullOrWhiteSpace(title))
+            return;
+
+        var newTask = new TaskItem
+        {
+            Title = title,
+            Description = "Tarea recien creada",
+            ColumnId = columnId,
+            Order = 1
+        };
+
+        await Http.PostAsJsonAsync("api/kanban/task", newTask);
+        newTaskTitles[columnId] = string.Empty;
+        await LoadBoard();
+    }
+
+    private async Task DeleteTask(int taskId)
+    {
+        await Http.DeleteAsync($"api/kanban/task/{taskId}");
+        await LoadBoard();
+    }
+}
