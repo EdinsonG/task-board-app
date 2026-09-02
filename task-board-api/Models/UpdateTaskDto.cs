@@ -10,4 +10,9 @@ public class UpdateTaskDto
 
     [MaxLength(2000, ErrorMessage = "La descripción no puede exceder 2000 caracteres")]
     public string Description { get; set; } = string.Empty;
+
+    public DateTime? DueDate { get; set; }
+
+    [MaxLength(200)]
+    public string Labels { get; set; } = string.Empty;
 }

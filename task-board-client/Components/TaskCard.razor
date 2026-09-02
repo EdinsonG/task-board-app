@@ -4,27 +4,43 @@
      draggable="true"
      @ondragstart="OnDragStart">
 
-    <div class="card-labels">
-        <span class="card-label @LabelClass"></span>
-    </div>
+    @if (!string.IsNullOrWhiteSpace(Task.Labels))
+    {
+        <div class="card-labels">
+            @foreach (var label in Task.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                <span class="card-label-text" style="background: @GetLabelColor(label)">@label</span>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="card-labels">
+            <span class="card-label @LabelClass"></span>
+        </div>
+    }
 
     <div class="card-title">@Task.Title</div>
-    <div class="card-description">@Task.Description</div>
+    @if (!string.IsNullOrWhiteSpace(Task.Description))
+    {
+        <div class="card-description">@Task.Description</div>
+    }
 
     <div class="card-footer">
         <div class="card-badges">
-            <span class="badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-            </span>
-            <span class="badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-            </span>
+            @if (Task.DueDate.HasValue)
+            {
+                var daysLeft = (Task.DueDate.Value.Date - DateTime.Today).Days;
+                <span class="badge badge-date @(daysLeft < 0 ? "badge-overdue" : daysLeft == 0 ? "badge-today" : "")">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    @Task.DueDate.Value.ToString("dd MMM")
+                </span>
+            }
         </div>
         <div class="card-avatars">
             <div class="mini-avatar">
@@ -89,6 +105,16 @@
     .label-purple { background: #9f8fef; }
     .label-orange { background: #fea362; }
 
+    .card-label-text {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: white;
+        line-height: 1.4;
+    }
+
     .card-title {
         font-size: 0.85rem;
         color: #172b4d;
@@ -123,7 +149,27 @@
     .badge {
         display: flex;
         align-items: center;
+        gap: 3px;
         color: #626f86;
+    }
+
+    .badge-date {
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .badge-overdue {
+        color: #ae1e09;
+        background: #ffeceb;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .badge-today {
+        color: #856404;
+        background: #fff3cd;
+        padding: 2px 6px;
+        border-radius: 4px;
     }
 
     .card-avatars {
@@ -230,5 +276,21 @@
     private void OnDelete()
     {
         DeleteClicked.InvokeAsync(Task.Id);
+    }
+
+    private string GetLabelColor(string label)
+    {
+        return label.Trim() switch
+        {
+            "Alta" => "#ff5630",
+            "Media" => "#ff991f",
+            "Baja" => "#36b37e",
+            "Bug" => "#ff5630",
+            "Feature" => "#579dff",
+            "Mejora" => "#9f8fef",
+            "Urgente" => "#e8916d",
+            "Diseño" => "#f472b6",
+            _ => "#626f86"
+        };
     }
 }

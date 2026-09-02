@@ -152,6 +152,8 @@ public class KanbanController : ControllerBase
 
             task.Title = dto.Title;
             task.Description = dto.Description;
+            task.DueDate = dto.DueDate;
+            task.Labels = dto.Labels ?? string.Empty;
 
             await _db.SaveChangesAsync();
 

@@ -3,6 +3,7 @@
 @inject KanbanService Kanban
 @using task_board_client.Models
 @using task_board_client.Services
+@implements IDisposable
 
 <PageTitle>Tablero Kanban</PageTitle>
 
@@ -32,6 +33,10 @@
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
         <span>@successMessage</span>
+        @if (lastAction != null)
+        {
+            <button class="toast-undo" @onclick="Undo">Deshacer</button>
+        }
     </div>
 }
 
@@ -121,10 +126,11 @@ else if (columns != null)
     </div>
 }
 
-<EditTaskModal IsVisible="editModalVisible"
-               Task="editingTask"
-               Cancel="CloseEditModal"
-               Save="UpdateTask" />
+<TaskDetailModal IsVisible="editModalVisible"
+                Task="editingTask"
+                ColumnNames="columnNames"
+                Cancel="CloseEditModal"
+                Save="UpdateTask" />
 
 <style>
     .toast {
@@ -167,6 +173,23 @@ else if (columns != null)
 
     .toast-success .toast-dismiss {
         color: #006644;
+    }
+
+    .toast-undo {
+        margin-left: 8px;
+        background: rgba(0, 102, 68, 0.1);
+        border: 1px solid rgba(0, 102, 68, 0.3);
+        color: #006644;
+        padding: 2px 10px;
+        border-radius: 4px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .toast-undo:hover {
+        background: rgba(0, 102, 68, 0.2);
     }
 
     .loading-board {
@@ -380,10 +403,19 @@ else if (columns != null)
     private bool showAddColumn;
     private bool isLoading;
     private string searchTerm = string.Empty;
+    private Dictionary<int, string> columnNames = new();
+    private UndoAction? lastAction;
+    private CancellationTokenSource? undoTimerCts;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadBoard();
+    }
+
+    public void Dispose()
+    {
+        undoTimerCts?.Cancel();
+        undoTimerCts?.Dispose();
     }
 
     private async Task LoadBoard()
@@ -394,6 +426,7 @@ else if (columns != null)
             columns = await Kanban.GetBoardAsync();
             if (columns != null)
             {
+                columnNames = columns.ToDictionary(c => c.Id, c => c.Name);
                 foreach (var col in columns)
                 {
                     if (!showAddCard.ContainsKey(col.Id))
@@ -486,8 +519,16 @@ else if (columns != null)
             }
             else
             {
+                var originalColumnId = draggedTask.ColumnId;
                 var moveDto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
                 await Kanban.MoveTaskAsync(moveDto);
+
+                SetUndo(new UndoAction
+                {
+                    Type = UndoType.Move,
+                    TaskId = draggedTaskId,
+                    ColumnId = originalColumnId
+                });
             }
 
             draggedTaskId = 0;
@@ -560,6 +601,13 @@ else if (columns != null)
     {
         try
         {
+            if (columns == null) return;
+            var task = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == taskId);
+            if (task == null) return;
+
+            var columnId = task.ColumnId;
+            var order = task.Order;
+
             isLoading = true;
             StateHasChanged();
 
@@ -570,6 +618,15 @@ else if (columns != null)
                 errorMessage = "Error al eliminar la tarea. Inténtalo de nuevo.";
                 return;
             }
+
+            SetUndo(new UndoAction
+            {
+                Type = UndoType.Delete,
+                TaskId = taskId,
+                TaskData = task,
+                ColumnId = columnId,
+                Order = order
+            });
 
             ShowSuccess("Tarea eliminada");
             await LoadBoard();
@@ -750,5 +807,91 @@ else if (columns != null)
         await Task.Delay(2500);
         successMessage = null;
         StateHasChanged();
+    }
+
+    private void SetUndo(UndoAction action)
+    {
+        undoTimerCts?.Cancel();
+        undoTimerCts?.Dispose();
+        undoTimerCts = new CancellationTokenSource();
+        lastAction = action;
+
+        _ = AutoClearUndo(undoTimerCts.Token);
+    }
+
+    private async Task AutoClearUndo(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(10000, ct);
+            lastAction = null;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task Undo()
+    {
+        if (lastAction == null) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            switch (lastAction.Type)
+            {
+                case UndoType.Delete:
+                    var restoredTask = new TaskItem
+                    {
+                        Title = lastAction.TaskData!.Title,
+                        Description = lastAction.TaskData.Description,
+                        ColumnId = lastAction.ColumnId,
+                        Order = lastAction.Order,
+                        DueDate = lastAction.TaskData.DueDate,
+                        Labels = lastAction.TaskData.Labels
+                    };
+                    await Kanban.CreateTaskAsync(restoredTask);
+                    ShowSuccess("Acción deshecha");
+                    break;
+
+                case UndoType.Move:
+                    var moveBack = new MoveTaskDto
+                    {
+                        TaskId = lastAction.TaskId,
+                        TargetColumnId = lastAction.ColumnId
+                    };
+                    await Kanban.MoveTaskAsync(moveBack);
+                    ShowSuccess("Acción deshecha");
+                    break;
+            }
+
+            lastAction = null;
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al deshacer: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private class UndoAction
+    {
+        public UndoType Type { get; set; }
+        public int TaskId { get; set; }
+        public TaskItem? TaskData { get; set; }
+        public int ColumnId { get; set; }
+        public int Order { get; set; }
+    }
+
+    private enum UndoType
+    {
+        Delete,
+        Move
     }
 }

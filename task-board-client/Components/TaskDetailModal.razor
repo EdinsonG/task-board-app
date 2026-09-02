@@ -1,0 +1,547 @@
+@using task_board_client.Models
+
+@if (IsVisible)
+{
+    <div class="modal-overlay" @onclick="OnCancel">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <div class="header-info">
+                    <h3>@(Task?.Title ?? "Detalle de tarea")</h3>
+                    @if (Task != null)
+                    {
+                        <span class="header-column">en @ColumnNames.GetValueOrDefault(Task.ColumnId, "Columna")</span>
+                    }
+                </div>
+                <button class="modal-close" @onclick="OnCancel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="section">
+                    <label class="field-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Título
+                    </label>
+                    <input type="text"
+                           class="field-input"
+                           @bind="Title"
+                           @bind:event="oninput"
+                           placeholder="Título de la tarea" />
+                </div>
+
+                <div class="section">
+                    <label class="field-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="17" y1="10" x2="3" y2="10"></line>
+                            <line x1="21" y1="6" x2="3" y2="6"></line>
+                            <line x1="21" y1="14" x2="3" y2="14"></line>
+                            <line x1="17" y1="18" x2="3" y2="18"></line>
+                        </svg>
+                        Descripción
+                    </label>
+                    <textarea class="field-textarea"
+                              @bind="Description"
+                              @bind:event="oninput"
+                              placeholder="Agrega una descripción más detallada..."
+                              rows="5"></textarea>
+                </div>
+
+                <div class="section">
+                    <label class="field-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                        </svg>
+                        Etiquetas
+                    </label>
+                    <div class="labels-grid">
+                        @foreach (var label in AvailableLabels)
+                        {
+                            var isSelected = SelectedLabels.Contains(label.Key);
+                            <button class="label-chip @(isSelected ? "label-selected" : "")"
+                                    style="--label-color: @label.Value"
+                                    @onclick="() => ToggleLabel(label.Key)">
+                                <span class="label-dot" style="background: @label.Value"></span>
+                                @label.Key
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <div class="section">
+                    <label class="field-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Fecha límite
+                    </label>
+                    <div class="date-row">
+                        <input type="date"
+                               class="field-input date-input"
+                               @bind="DueDate"
+                               @bind:format="yyyy-MM-dd" />
+                        @if (DueDate.HasValue)
+                        {
+                            <button class="date-clear" @onclick="() => DueDate = null">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        }
+                    </div>
+                    @if (DueDate.HasValue)
+                    {
+                        var diff = DueDate.Value.Date - DateTime.Today;
+                        var daysLeft = diff.Days;
+                        <div class="date-badge @(daysLeft < 0 ? "date-overdue" : daysLeft == 0 ? "date-today" : "date-upcoming")">
+                            @if (daysLeft < 0)
+                            {
+                                <text>Vencida hace @Math.Abs(daysLeft) día(s)</text>
+                            }
+                            else if (daysLeft == 0)
+                            {
+                                <text>Vence hoy</text>
+                            }
+                            else
+                            {
+                                <text>Faltan @daysLeft día(s)</text>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (Task != null)
+                {
+                    <div class="section section-meta">
+                        <div class="meta-row">
+                            <span class="meta-label">ID:</span>
+                            <span class="meta-value">#@Task.Id</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Orden:</span>
+                            <span class="meta-value">@Task.Order</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer">
+                <div class="footer-left">
+                    @if (HasChanges)
+                    {
+                        <span class="unsaved-indicator">Cambios sin guardar</span>
+                    }
+                </div>
+                <div class="footer-right">
+                    <button class="btn-cancel" @onclick="OnCancel">Cancelar</button>
+                    <button class="btn-save" @onclick="OnSave" disabled="@(!IsValid)">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 540px;
+        max-width: 92vw;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        animation: scaleIn 0.15s ease-out;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 20px 24px 12px;
+    }
+
+    .header-info h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #172b4d;
+        line-height: 1.3;
+    }
+
+    .header-column {
+        font-size: 0.75rem;
+        color: #626f86;
+        margin-top: 2px;
+        display: block;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .modal-close:hover {
+        background: #f1f2f4;
+        color: #172b4d;
+    }
+
+    .modal-body {
+        padding: 8px 24px 16px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .section {
+        margin-bottom: 20px;
+    }
+
+    .section:last-child {
+        margin-bottom: 0;
+    }
+
+    .field-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #626f86;
+        margin-bottom: 6px;
+    }
+
+    .field-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d0d4dc;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        color: #172b4d;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .field-input:focus {
+        border-color: #0c66e4;
+        box-shadow: 0 0 0 1px #0c66e4;
+    }
+
+    .field-textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d0d4dc;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        color: #172b4d;
+        outline: none;
+        resize: vertical;
+        min-height: 100px;
+        line-height: 1.5;
+        transition: border-color 0.15s;
+    }
+
+    .field-textarea:focus {
+        border-color: #0c66e4;
+        box-shadow: 0 0 0 1px #0c66e4;
+    }
+
+    .labels-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .label-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 2px solid transparent;
+        background: #f1f2f4;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #172b4d;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .label-chip:hover {
+        background: #e4e6ea;
+    }
+
+    .label-chip.label-selected {
+        border-color: var(--label-color);
+        background: color-mix(in srgb, var(--label-color) 15%, white);
+    }
+
+    .label-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .date-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .date-input {
+        flex: 1;
+    }
+
+    .date-clear {
+        background: none;
+        border: 1px solid #d0d4dc;
+        color: #626f86;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .date-clear:hover {
+        background: #ffeceb;
+        color: #ae1e09;
+        border-color: #ff5630;
+    }
+
+    .date-badge {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .date-overdue {
+        background: #ffeceb;
+        color: #ae1e09;
+    }
+
+    .date-today {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .date-upcoming {
+        background: #e3fcef;
+        color: #006644;
+    }
+
+    .section-meta {
+        padding-top: 12px;
+        border-top: 1px solid #e1e4e8;
+    }
+
+    .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+        font-size: 0.78rem;
+    }
+
+    .meta-label {
+        color: #626f86;
+    }
+
+    .meta-value {
+        color: #172b4d;
+        font-weight: 500;
+    }
+
+    .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 24px;
+        border-top: 1px solid #e1e4e8;
+    }
+
+    .footer-left {
+        flex: 1;
+    }
+
+    .unsaved-indicator {
+        font-size: 0.75rem;
+        color: #e8916d;
+        font-style: italic;
+    }
+
+    .footer-right {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-cancel {
+        background: none;
+        border: 1px solid #d0d4dc;
+        color: #626f86;
+        padding: 7px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-cancel:hover {
+        background: #f1f2f4;
+    }
+
+    .btn-save {
+        background: #0c66e4;
+        color: white;
+        border: none;
+        padding: 7px 20px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-save:hover {
+        background: #0055cc;
+    }
+
+    .btn-save:disabled {
+        background: #a6c5e9;
+        cursor: not-allowed;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    @@media (max-width: 640px) {
+        .modal-overlay {
+            align-items: flex-end;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 12px 12px 0 0;
+            max-height: 90vh;
+        }
+
+        .modal-body {
+            max-height: 65vh;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public TaskItem? Task { get; set; }
+    [Parameter] public Dictionary<int, string> ColumnNames { get; set; } = new();
+    [Parameter] public EventCallback Cancel { get; set; }
+    [Parameter] public EventCallback<UpdateTaskDto> Save { get; set; }
+
+    private string Title { get; set; } = string.Empty;
+    private string Description { get; set; } = string.Empty;
+    private DateTime? DueDate { get; set; }
+    private HashSet<string> SelectedLabels { get; set; } = new();
+
+    private readonly Dictionary<string, string> AvailableLabels = new()
+    {
+        { "Alta", "#ff5630" },
+        { "Media", "#ff991f" },
+        { "Baja", "#36b37e" },
+        { "Bug", "#ff5630" },
+        { "Feature", "#579dff" },
+        { "Mejora", "#9f8fef" },
+        { "Urgente", "#e8916d" },
+        { "Diseño", "#f472b6" }
+    };
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(Title);
+
+    private bool HasChanges =>
+        Task != null &&
+        (Title != Task.Title ||
+         Description != Task.Description ||
+         DueDate != Task.DueDate ||
+         string.Join(",", SelectedLabels.OrderBy(x => x)) != Task.Labels);
+
+    protected override void OnParametersSet()
+    {
+        if (Task != null && IsVisible)
+        {
+            Title = Task.Title;
+            Description = Task.Description;
+            DueDate = Task.DueDate;
+            SelectedLabels = string.IsNullOrWhiteSpace(Task.Labels)
+                ? new HashSet<string>()
+                : new HashSet<string>(Task.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries));
+        }
+    }
+
+    private void ToggleLabel(string label)
+    {
+        if (SelectedLabels.Contains(label))
+            SelectedLabels.Remove(label);
+        else
+            SelectedLabels.Add(label);
+    }
+
+    private async Task OnSave()
+    {
+        if (!IsValid || Task == null) return;
+
+        await Save.InvokeAsync(new UpdateTaskDto
+        {
+            Title = Title,
+            Description = Description,
+            DueDate = DueDate,
+            Labels = string.Join(",", SelectedLabels)
+        });
+    }
+
+    private async Task OnCancel()
+    {
+        await Cancel.InvokeAsync();
+    }
+}

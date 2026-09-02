@@ -17,4 +17,9 @@ public class TaskItem
     public int ColumnId { get; set; }
 
     public int Order { get; set; }
+
+    public DateTime? DueDate { get; set; }
+
+    [MaxLength(200)]
+    public string Labels { get; set; } = string.Empty;
 }

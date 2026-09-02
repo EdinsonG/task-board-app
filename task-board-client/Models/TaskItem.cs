@@ -7,4 +7,6 @@ public class TaskItem
     public string Description { get; set; } = string.Empty;
     public int ColumnId { get; set; }
     public int Order { get; set; }
+    public DateTime? DueDate { get; set; }
+    public string Labels { get; set; } = string.Empty;
 }
