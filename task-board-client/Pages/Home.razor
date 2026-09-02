@@ -97,7 +97,7 @@ else if (columns != null)
             {
                 <div class="shortcuts-tooltip">
                     <div class="shortcuts-title">Atajos de teclado</div>
-                    <div class="shortcut-row"><kbd>N</kbd> Nueva tarea</div>
+                    <div class="shortcut-row"><kbd>N</kbd> Nueva columna</div>
                     <div class="shortcut-row"><kbd>E</kbd> Editar primera tarea</div>
                     <div class="shortcut-row"><kbd>Ctrl+Z</kbd> Deshacer</div>
                     <div class="shortcut-row"><kbd>Esc</kbd> Cerrar modal</div>
@@ -160,9 +160,13 @@ else if (columns != null)
                     </div>
                 </div>
 
-                <AddCardForm IsVisible="showAddCard.ContainsKey(column.Id) && showAddCard[column.Id]"
-                             ToggleVisibility="() => ToggleAddCard(column.Id)"
-                             SubmitCard="(title) => CreateTask(column.Id, title)" />
+                <button class="add-card-btn-inline" @onclick="() => OpenCreateModal(column.Id)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add a card
+                </button>
             </div>
         }
 
@@ -174,6 +178,7 @@ else if (columns != null)
 
 <TaskDetailModal IsVisible="editModalVisible"
                 Task="editingTask"
+                CreatingInColumnId="creatingInColumnId"
                 ColumnNames="columnNames"
                 Cancel="CloseEditModal"
                 Save="UpdateTask" />
@@ -487,6 +492,26 @@ else if (columns != null)
         background: rgba(255,255,255,0.5);
     }
 
+    .add-card-btn-inline {
+        width: 100%;
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .add-card-btn-inline:hover {
+        background: rgba(9, 30, 66, 0.08);
+        color: #172b4d;
+    }
+
     @@media (max-width: 640px) {
         .kanban-board {
             gap: 10px;
@@ -538,6 +563,7 @@ else if (columns != null)
     private string? successMessage;
     private bool editModalVisible;
     private TaskItem? editingTask;
+    private int? creatingInColumnId;
     private int dragOverColumnId;
     private int dragOverIndex;
     private bool showAddColumn;
@@ -737,7 +763,7 @@ else if (columns != null)
             var newTask = new TaskItem
             {
                 Title = title,
-                Description = "Nueva tarea",
+                Description = "Nueva columna",
                 ColumnId = columnId,
                 Order = 1
             };
@@ -877,41 +903,69 @@ else if (columns != null)
     private void OpenEditModal(int taskId)
     {
         if (columns == null) return;
+        creatingInColumnId = null;
         editingTask = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == taskId);
         if (editingTask != null)
             editModalVisible = true;
+    }
+
+    private void OpenCreateModal(int columnId)
+    {
+        creatingInColumnId = columnId;
+        editingTask = null;
+        editModalVisible = true;
     }
 
     private void CloseEditModal()
     {
         editModalVisible = false;
         editingTask = null;
+        creatingInColumnId = null;
     }
 
     private async Task UpdateTask(UpdateTaskDto dto)
     {
-        if (editingTask == null) return;
-
         try
         {
             isLoading = true;
             StateHasChanged();
 
-            var response = await Kanban.UpdateTaskAsync(editingTask.Id, dto);
+            HttpResponseMessage response;
+
+            if (editingTask != null)
+            {
+                response = await Kanban.UpdateTaskAsync(editingTask.Id, dto);
+            }
+            else if (creatingInColumnId.HasValue)
+            {
+                var newTask = new TaskItem
+                {
+                    Title = dto.Title,
+                    Description = dto.Description,
+                    ColumnId = creatingInColumnId.Value,
+                    DueDate = dto.DueDate,
+                    Labels = dto.Labels
+                };
+                response = await Kanban.CreateTaskAsync(newTask);
+            }
+            else
+            {
+                return;
+            }
 
             if (!response.IsSuccessStatusCode)
             {
-                errorMessage = "Error al actualizar la tarea. Inténtalo de nuevo.";
+                errorMessage = "Error al guardar la tarea. Inténtalo de nuevo.";
                 return;
             }
 
             CloseEditModal();
-            ShowSuccess("Tarea actualizada");
+            ShowSuccess(editingTask != null ? "Tarea actualizada" : "Tarea creada");
             await LoadBoard();
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al actualizar la tarea: {ex.Message}";
+            errorMessage = $"Error al guardar la tarea: {ex.Message}";
         }
         finally
         {

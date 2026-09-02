@@ -6,8 +6,12 @@
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
                 <div class="header-info">
-                    <h3>@(Task?.Title ?? "Detalle de tarea")</h3>
-                    @if (Task != null)
+                    <h3>@(IsCreateMode ? "Crear tarea" : Task?.Title ?? "Detalle de tarea")</h3>
+                    @if (IsCreateMode && CreatingInColumnId.HasValue)
+                    {
+                        <span class="header-column">en @ColumnNames.GetValueOrDefault(CreatingInColumnId.Value, "Columna")</span>
+                    }
+                    else if (Task != null)
                     {
                         <span class="header-column">en @ColumnNames.GetValueOrDefault(Task.ColumnId, "Columna")</span>
                     }
@@ -511,6 +515,7 @@
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public TaskItem? Task { get; set; }
+    [Parameter] public int? CreatingInColumnId { get; set; }
     [Parameter] public Dictionary<int, string> ColumnNames { get; set; } = new();
     [Parameter] public EventCallback Cancel { get; set; }
     [Parameter] public EventCallback<UpdateTaskDto> Save { get; set; }
@@ -520,6 +525,8 @@
     private DateTime? DueDate { get; set; }
     private HashSet<string> SelectedLabels { get; set; } = new();
     private bool showValidation;
+
+    private bool IsCreateMode => Task == null && CreatingInColumnId.HasValue;
 
     private readonly Dictionary<string, string> AvailableLabels = new()
     {
@@ -540,30 +547,34 @@
         DueDate.HasValue;
 
     private bool HasChanges =>
-        Task != null &&
-        (Title != Task.Title ||
-         Description != Task.Description ||
-         DueDate != Task.DueDate ||
-         string.Join(",", SelectedLabels.OrderBy(x => x)) != Task.Labels);
+        IsCreateMode
+            ? (!string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Description) || DueDate.HasValue || SelectedLabels.Count > 0)
+            : Task != null &&
+              (Title != Task.Title ||
+               Description != Task.Description ||
+               DueDate != Task.DueDate ||
+               string.Join(",", SelectedLabels.OrderBy(x => x)) != Task.Labels);
 
     protected override void OnParametersSet()
     {
-        if (Task != null && IsVisible)
+        if (IsVisible)
         {
-            Title = Task.Title;
-            Description = Task.Description;
-            DueDate = Task.DueDate;
-            SelectedLabels = string.IsNullOrWhiteSpace(Task.Labels)
-                ? new HashSet<string>()
-                : new HashSet<string>(Task.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries));
-            showValidation = false;
-        }
-        else if (IsVisible && Task == null)
-        {
-            Title = string.Empty;
-            Description = string.Empty;
-            DueDate = null;
-            SelectedLabels = new HashSet<string>();
+            if (Task != null)
+            {
+                Title = Task.Title;
+                Description = Task.Description;
+                DueDate = Task.DueDate;
+                SelectedLabels = string.IsNullOrWhiteSpace(Task.Labels)
+                    ? new HashSet<string>()
+                    : new HashSet<string>(Task.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            }
+            else
+            {
+                Title = string.Empty;
+                Description = string.Empty;
+                DueDate = null;
+                SelectedLabels = new HashSet<string>();
+            }
             showValidation = false;
         }
     }
