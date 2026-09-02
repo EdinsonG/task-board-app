@@ -10,50 +10,110 @@ namespace task_board_api.Controllers;
 public class KanbanController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<KanbanController> _logger;
 
-    public KanbanController(AppDbContext db)
+    public KanbanController(AppDbContext db, ILogger<KanbanController> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<ColumnItem>>> GetBoard()
     {
-        return await _db.Columns
-            .Include(c => c.Tasks)
-            .OrderBy(c => c.Order)
-            .ToListAsync();
+        try
+        {
+            var columns = await _db.Columns
+                .Include(c => c.Tasks)
+                .OrderBy(c => c.Order)
+                .ToListAsync();
+
+            return Ok(columns);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener el tablero");
+            return StatusCode(500, new { message = "Error al obtener el tablero" });
+        }
     }
 
     [HttpPost("task")]
-    public async Task<ActionResult<TaskItem>> CreateTask(TaskItem task)
+    public async Task<ActionResult<TaskItem>> CreateTask([FromBody] TaskItem task)
     {
-        _db.Tasks.Add(task);
-        await _db.SaveChangesAsync();
-        return Ok(task);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var columnExists = await _db.Columns.AnyAsync(c => c.Id == task.ColumnId);
+            if (!columnExists)
+                return BadRequest(new { message = $"La columna con ID {task.ColumnId} no existe" });
+
+            task.Order = await _db.Tasks.CountAsync(t => t.ColumnId == task.ColumnId) + 1;
+
+            _db.Tasks.Add(task);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Tarea creada: {TaskId} - {Title}", task.Id, task.Title);
+            return Ok(task);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear la tarea");
+            return StatusCode(500, new { message = "Error al crear la tarea" });
+        }
     }
 
     [HttpPost("move-task")]
     public async Task<IActionResult> MoveTask([FromBody] MoveTaskDto dto)
     {
-        var task = await _db.Tasks.FindAsync(dto.TaskId);
-        if (task == null) return NotFound();
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        task.ColumnId = dto.TargetColumnId;
-        await _db.SaveChangesAsync();
+        try
+        {
+            var task = await _db.Tasks.FindAsync(dto.TaskId);
+            if (task == null)
+                return NotFound(new { message = $"Tarea con ID {dto.TaskId} no encontrada" });
 
-        return Ok();
+            var columnExists = await _db.Columns.AnyAsync(c => c.Id == dto.TargetColumnId);
+            if (!columnExists)
+                return BadRequest(new { message = $"La columna con ID {dto.TargetColumnId} no existe" });
+
+            task.ColumnId = dto.TargetColumnId;
+            task.Order = await _db.Tasks.CountAsync(t => t.ColumnId == dto.TargetColumnId) + 1;
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Tarea {TaskId} movida a columna {ColumnId}", dto.TaskId, dto.TargetColumnId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al mover la tarea {TaskId}", dto.TaskId);
+            return StatusCode(500, new { message = "Error al mover la tarea" });
+        }
     }
 
     [HttpDelete("task/{id}")]
     public async Task<IActionResult> DeleteTask(int id)
     {
-        var task = await _db.Tasks.FindAsync(id);
-        if (task == null) return NotFound();
+        try
+        {
+            var task = await _db.Tasks.FindAsync(id);
+            if (task == null)
+                return NotFound(new { message = $"Tarea con ID {id} no encontrada" });
 
-        _db.Tasks.Remove(task);
-        await _db.SaveChangesAsync();
+            _db.Tasks.Remove(task);
+            await _db.SaveChangesAsync();
 
-        return Ok();
+            _logger.LogInformation("Tarea eliminada: {TaskId}", id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar la tarea {TaskId}", id);
+            return StatusCode(500, new { message = "Error al eliminar la tarea" });
+        }
     }
 }

@@ -4,6 +4,24 @@
 
 <PageTitle>Tablero Kanban</PageTitle>
 
+@if (errorMessage != null)
+{
+    <div class="error-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>@errorMessage</span>
+        <button class="error-dismiss" @onclick="() => errorMessage = null">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+}
+
 @if (columns == null)
 {
     <p style="color: white; text-align: center; margin-top: 40px;">Cargando tablero...</p>
@@ -42,6 +60,35 @@ else
 }
 
 <style>
+    .error-banner {
+        background: #ffeceb;
+        border: 1px solid #ff5630;
+        border-radius: 8px;
+        color: #ae1e09;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+
+    .error-dismiss {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: #ae1e09;
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+    }
+
+    .error-dismiss:hover {
+        background: rgba(174, 30, 9, 0.1);
+    }
+
     .board-title-bar {
         margin-bottom: 12px;
     }
@@ -99,6 +146,7 @@ else
     private List<ColumnItem>? columns;
     private Dictionary<int, bool> showAddCard = new();
     private int draggedTaskId;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,14 +155,22 @@ else
 
     private async Task LoadBoard()
     {
-        columns = await Http.GetFromJsonAsync<List<ColumnItem>>("api/kanban");
-        if (columns != null)
+        try
         {
-            foreach (var col in columns)
+            errorMessage = null;
+            columns = await Http.GetFromJsonAsync<List<ColumnItem>>("api/kanban");
+            if (columns != null)
             {
-                if (!showAddCard.ContainsKey(col.Id))
-                    showAddCard[col.Id] = false;
+                foreach (var col in columns)
+                {
+                    if (!showAddCard.ContainsKey(col.Id))
+                        showAddCard[col.Id] = false;
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudo conectar con el servidor: {ex.Message}";
         }
     }
 
@@ -139,33 +195,74 @@ else
     {
         if (draggedTaskId == 0) return;
 
-        var dto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
-        await Http.PostAsJsonAsync("api/kanban/move-task", dto);
+        try
+        {
+            var dto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
+            var response = await Http.PostAsJsonAsync("api/kanban/move-task", dto);
 
-        draggedTaskId = 0;
-        await LoadBoard();
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al mover la tarea. Inténtalo de nuevo.";
+                return;
+            }
+
+            draggedTaskId = 0;
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al mover la tarea: {ex.Message}";
+        }
     }
 
     private async Task CreateTask(int columnId, string title)
     {
         if (string.IsNullOrWhiteSpace(title)) return;
 
-        var newTask = new TaskItem
+        try
         {
-            Title = title,
-            Description = "Nueva tarea",
-            ColumnId = columnId,
-            Order = 1
-        };
+            var newTask = new TaskItem
+            {
+                Title = title,
+                Description = "Nueva tarea",
+                ColumnId = columnId,
+                Order = 1
+            };
 
-        await Http.PostAsJsonAsync("api/kanban/task", newTask);
-        showAddCard[columnId] = false;
-        await LoadBoard();
+            var response = await Http.PostAsJsonAsync("api/kanban/task", newTask);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al crear la tarea. Inténtalo de nuevo.";
+                return;
+            }
+
+            showAddCard[columnId] = false;
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al crear la tarea: {ex.Message}";
+        }
     }
 
     private async Task DeleteTask(int taskId)
     {
-        await Http.DeleteAsync($"api/kanban/task/{taskId}");
-        await LoadBoard();
+        try
+        {
+            var response = await Http.DeleteAsync($"api/kanban/task/{taskId}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al eliminar la tarea. Inténtalo de nuevo.";
+                return;
+            }
+
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al eliminar la tarea: {ex.Message}";
+        }
     }
 }
