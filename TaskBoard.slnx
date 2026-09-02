@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="task-board-api/task-board-api.csproj" />
+  <Project Path="task-board-client/task-board-client.csproj" />
+</Solution>

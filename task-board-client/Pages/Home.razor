@@ -1,7 +1,8 @@
 ﻿@page "/"
-@inject HttpClient Http
 @inject IJSRuntime JSRuntime
+@inject KanbanService Kanban
 @using task_board_client.Models
+@using task_board_client.Services
 
 <PageTitle>Tablero Kanban</PageTitle>
 
@@ -52,6 +53,26 @@ else if (columns != null)
                 Guardando...
             </span>
         }
+        <div class="search-wrapper">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text"
+                   class="search-input"
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   placeholder="Buscar tareas..." />
+            @if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                <button class="search-clear" @onclick="() => searchTerm = string.Empty">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            }
+        </div>
     </div>
 
     <div class="kanban-board">
@@ -66,9 +87,9 @@ else if (columns != null)
                 <div class="task-list"
                      ondragover="event.preventDefault();"
                      @ondrop="() => HandleDrop(column.Id)">
-                    @for (var i = 0; i < column.Tasks.Count; i++)
+                    @for (var i = 0; i < GetFilteredTasks(column).Count; i++)
                     {
-                        var task = column.Tasks[i];
+                        var task = GetFilteredTasks(column)[i];
                         var index = i;
                         <div class="drop-zone @(dragOverColumnId == column.Id && dragOverIndex == index ? "drop-zone-active" : "")"
                              ondragover="event.preventDefault();"
@@ -190,6 +211,7 @@ else if (columns != null)
         margin-bottom: 12px;
         display: flex;
         align-items: center;
+        gap: 12px;
     }
 
     .board-section-title {
@@ -199,6 +221,61 @@ else if (columns != null)
         background: rgba(255,255,255,0.2);
         padding: 6px 14px;
         border-radius: 4px;
+        white-space: nowrap;
+    }
+
+    .search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 10px;
+        color: rgba(255, 255, 255, 0.6);
+        pointer-events: none;
+    }
+
+    .search-input {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 6px 30px 6px 30px;
+        color: white;
+        font-size: 0.85rem;
+        outline: none;
+        width: 200px;
+        transition: background 0.15s, border-color 0.15s, width 0.2s;
+    }
+
+    .search-input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .search-input:focus {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        width: 260px;
+    }
+
+    .search-clear {
+        position: absolute;
+        right: 6px;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-clear:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
     }
 
     .kanban-board {
@@ -251,6 +328,43 @@ else if (columns != null)
     .kanban-board::-webkit-scrollbar-thumb:hover {
         background: rgba(255,255,255,0.5);
     }
+
+    @@media (max-width: 640px) {
+        .kanban-board {
+            gap: 10px;
+            padding-bottom: 80px;
+        }
+
+        .kanban-column {
+            width: 260px;
+            min-width: 260px;
+            padding: 6px;
+        }
+
+        .board-title-bar {
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            width: 100%;
+            order: 3;
+        }
+
+        .search-input,
+        .search-input:focus {
+            width: 100%;
+        }
+
+        .toast {
+            font-size: 0.8rem;
+            padding: 8px 10px;
+        }
+
+        .drop-zone-active {
+            min-height: 32px;
+        }
+    }
 </style>
 
 @code {
@@ -265,6 +379,7 @@ else if (columns != null)
     private int dragOverIndex;
     private bool showAddColumn;
     private bool isLoading;
+    private string searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -276,7 +391,7 @@ else if (columns != null)
         try
         {
             errorMessage = null;
-            columns = await Http.GetFromJsonAsync<List<ColumnItem>>("api/kanban");
+            columns = await Kanban.GetBoardAsync();
             if (columns != null)
             {
                 foreach (var col in columns)
@@ -296,6 +411,18 @@ else if (columns != null)
     {
         var labels = new[] { "label-yellow", "label-blue", "label-green", "label-pink", "label-purple", "label-orange" };
         return labels[taskId % labels.Length];
+    }
+
+    private List<TaskItem> GetFilteredTasks(ColumnItem column)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return column.Tasks;
+
+        var term = searchTerm.ToLowerInvariant();
+        return column.Tasks
+            .Where(t => t.Title.ToLowerInvariant().Contains(term)
+                     || t.Description.ToLowerInvariant().Contains(term))
+            .ToList();
     }
 
     private void ToggleAddCard(int columnId)
@@ -355,12 +482,12 @@ else if (columns != null)
                     TargetColumnId = targetColumnId,
                     NewOrder = adjustedIndex
                 };
-                await Http.PostAsJsonAsync("api/kanban/reorder-task", dto);
+                await Kanban.ReorderTaskAsync(dto);
             }
             else
             {
                 var moveDto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
-                await Http.PostAsJsonAsync("api/kanban/move-task", moveDto);
+                await Kanban.MoveTaskAsync(moveDto);
             }
 
             draggedTaskId = 0;
@@ -391,7 +518,7 @@ else if (columns != null)
                 Order = 1
             };
 
-            var response = await Http.PostAsJsonAsync("api/kanban/task", newTask);
+            var response = await Kanban.CreateTaskAsync(newTask);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -436,7 +563,7 @@ else if (columns != null)
             isLoading = true;
             StateHasChanged();
 
-            var response = await Http.DeleteAsync($"api/kanban/task/{taskId}");
+            var response = await Kanban.DeleteTaskAsync(taskId);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -481,7 +608,7 @@ else if (columns != null)
             isLoading = true;
             StateHasChanged();
 
-            var response = await Http.PutAsJsonAsync($"api/kanban/task/{editingTask.Id}", dto);
+            var response = await Kanban.UpdateTaskAsync(editingTask.Id, dto);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -512,7 +639,7 @@ else if (columns != null)
             StateHasChanged();
 
             var dto = new CreateColumnDto { Name = name };
-            var response = await Http.PostAsJsonAsync("api/kanban/column", dto);
+            var response = await Kanban.CreateColumnAsync(dto);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -543,7 +670,7 @@ else if (columns != null)
             StateHasChanged();
 
             var dto = new UpdateColumnDto { Name = newName };
-            var response = await Http.PutAsJsonAsync($"api/kanban/column/{columnId}", dto);
+            var response = await Kanban.UpdateColumnAsync(columnId, dto);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -589,7 +716,7 @@ else if (columns != null)
             isLoading = true;
             StateHasChanged();
 
-            var response = await Http.DeleteAsync($"api/kanban/column/{columnId}");
+            var response = await Kanban.DeleteColumnAsync(columnId);
 
             if (!response.IsSuccessStatusCode)
             {

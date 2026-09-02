@@ -118,3 +118,33 @@
     padding: 16px;
     overflow-x: auto;
 }
+
+@media (max-width: 640px) {
+    .trello-header {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+
+    .logo-text {
+        font-size: 1rem;
+    }
+
+    .header-center {
+        display: none;
+    }
+
+    .invite-btn span,
+    .invite-btn {
+        font-size: 0;
+        padding: 6px;
+        gap: 0;
+    }
+
+    .invite-btn svg {
+        margin: 0;
+    }
+
+    .trello-main {
+        padding: 8px;
+    }
+}

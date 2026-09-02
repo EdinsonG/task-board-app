@@ -95,3 +95,13 @@ a, .btn-link {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+@media (max-width: 640px) {
+    html, body {
+        overflow: auto;
+    }
+
+    #app {
+        height: auto;
+    }
+}
