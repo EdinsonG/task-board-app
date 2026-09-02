@@ -183,6 +183,14 @@ else if (columns != null)
                 Cancel="CloseEditModal"
                 Save="UpdateTask" />
 
+<ConfirmModal IsVisible="confirmVisible"
+              Title="@confirmTitle"
+              Message="@confirmMessage"
+              ConfirmText="@confirmConfirmText"
+              Type="@confirmType"
+              OnConfirm="ExecuteConfirmAction"
+              OnCancel="CancelConfirm" />
+
 <style>
     .toast-container {
         position: fixed;
@@ -573,6 +581,12 @@ else if (columns != null)
     private UndoAction? lastAction;
     private CancellationTokenSource? undoTimerCts;
     private bool showShortcuts;
+    private bool confirmVisible;
+    private string confirmTitle = string.Empty;
+    private string confirmMessage = string.Empty;
+    private string confirmConfirmText = "Eliminar";
+    private ConfirmModal.ConfirmType confirmType = ConfirmModal.ConfirmType.Danger;
+    private Func<Task>? confirmAction;
 
     protected override async Task OnInitializedAsync()
     {
@@ -847,12 +861,13 @@ else if (columns != null)
         var task = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == taskId);
         if (task == null) return;
 
-        var message = $"¿Eliminar la tarea \"{task.Title}\"?";
-
-        if (await JSRuntime.InvokeAsync<bool>("confirm", message))
-        {
-            await DeleteTask(taskId);
-        }
+        confirmTitle = "Eliminar tarea";
+        confirmMessage = $"¿Eliminar la tarea \"{task.Title}\"? Esta acción no se puede deshacer.";
+        confirmConfirmText = "Eliminar";
+        confirmType = ConfirmModal.ConfirmType.Danger;
+        confirmAction = () => DeleteTask(taskId);
+        confirmVisible = true;
+        StateHasChanged();
     }
 
     private async Task DeleteTask(int taskId)
@@ -1042,14 +1057,15 @@ else if (columns != null)
         var column = columns.FirstOrDefault(c => c.Id == columnId);
         var taskCount = column?.Tasks.Count ?? 0;
 
-        var message = taskCount > 0
-            ? $"¿Eliminar la columna \"{columnName}\" y sus {taskCount} tarea(s)?"
-            : $"¿Eliminar la columna \"{columnName}\"?";
-
-        if (await JSRuntime.InvokeAsync<bool>("confirm", message))
-        {
-            await DeleteColumn(columnId);
-        }
+        confirmTitle = "Eliminar columna";
+        confirmMessage = taskCount > 0
+            ? $"¿Eliminar la columna \"{columnName}\" y sus {taskCount} tarea(s)? Esta acción no se puede deshacer."
+            : $"¿Eliminar la columna \"{columnName}\"? Esta acción no se puede deshacer.";
+        confirmConfirmText = "Eliminar columna";
+        confirmType = ConfirmModal.ConfirmType.Danger;
+        confirmAction = () => DeleteColumn(columnId);
+        confirmVisible = true;
+        StateHasChanged();
     }
 
     private async Task DeleteColumn(int columnId)
@@ -1079,6 +1095,24 @@ else if (columns != null)
             isLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task ExecuteConfirmAction()
+    {
+        confirmVisible = false;
+        StateHasChanged();
+        if (confirmAction != null)
+        {
+            await confirmAction.Invoke();
+            confirmAction = null;
+        }
+    }
+
+    private void CancelConfirm()
+    {
+        confirmVisible = false;
+        confirmAction = null;
+        StateHasChanged();
     }
 
     private void ToggleShortcutsHelp()

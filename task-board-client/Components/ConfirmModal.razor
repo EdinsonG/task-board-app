@@ -1,0 +1,184 @@
+@if (IsVisible)
+{
+    <div class="confirm-overlay" @onclick="OnCancel">
+        <div class="confirm-modal" @onclick:stopPropagation="true">
+            <div class="confirm-icon @IconClass">
+                @if (Type == ConfirmType.Danger)
+                {
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                }
+                else
+                {
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                }
+            </div>
+            <h3 class="confirm-title">@Title</h3>
+            <p class="confirm-message">@Message</p>
+            <div class="confirm-actions">
+                <button class="confirm-btn confirm-btn-cancel" @onclick="OnCancel">Cancelar</button>
+                <button class="confirm-btn confirm-btn-danger" @onclick="OnConfirm">
+                    @if (Type == ConfirmType.Danger)
+                    {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    }
+                    @ConfirmText
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .confirm-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+        animation: confirmFadeIn 0.15s ease-out;
+    }
+
+    .confirm-modal {
+        background: white;
+        border-radius: 12px;
+        padding: 28px 28px 20px;
+        width: 400px;
+        max-width: 90vw;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        animation: confirmScaleIn 0.15s ease-out;
+        text-align: center;
+    }
+
+    .confirm-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    }
+
+    .confirm-icon-danger {
+        background: #ffeceb;
+        color: #ae1e09;
+    }
+
+    .confirm-icon-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .confirm-title {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+        color: #172b4d;
+        font-weight: 600;
+    }
+
+    .confirm-message {
+        margin: 0 0 20px;
+        font-size: 0.85rem;
+        color: #626f86;
+        line-height: 1.5;
+    }
+
+    .confirm-actions {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .confirm-btn {
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: background 0.15s, transform 0.1s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .confirm-btn:active {
+        transform: scale(0.97);
+    }
+
+    .confirm-btn-cancel {
+        background: #f1f2f4;
+        color: #626f86;
+        border: 1px solid #d0d4dc;
+    }
+
+    .confirm-btn-cancel:hover {
+        background: #e4e6ea;
+    }
+
+    .confirm-btn-danger {
+        background: #ae1e09;
+        color: white;
+    }
+
+    .confirm-btn-danger:hover {
+        background: #821a0a;
+    }
+
+    @@keyframes confirmFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes confirmScaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    @@media (max-width: 640px) {
+        .confirm-overlay {
+            align-items: flex-end;
+        }
+
+        .confirm-modal {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "¿Estás seguro?";
+    [Parameter] public string Message { get; set; } = "Esta acción no se puede deshacer.";
+    [Parameter] public string ConfirmText { get; set; } = "Eliminar";
+    [Parameter] public ConfirmType Type { get; set; } = ConfirmType.Danger;
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string IconClass => Type == ConfirmType.Danger ? "confirm-icon-danger" : "confirm-icon-warning";
+
+    public enum ConfirmType
+    {
+        Danger,
+        Warning
+    }
+}
