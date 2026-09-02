@@ -35,21 +35,33 @@ else
     <div class="kanban-board">
         @foreach (var column in columns)
         {
-            <div class="kanban-column"
-                 ondragover="event.preventDefault();"
-                 @ondrop="() => HandleDrop(column.Id)">
+            <div class="kanban-column">
 
                 <ColumnHeader Title="@column.Name" />
 
-                <div class="task-list">
-                    @foreach (var task in column.Tasks)
+                <div class="task-list"
+                     ondragover="event.preventDefault();"
+                     @ondrop="() => HandleDrop(column.Id)">
+                    @for (var i = 0; i < column.Tasks.Count; i++)
                     {
-                        <TaskCard Task="task"
-                                  LabelClass="@GetLabelClass(task.Id)"
-                                  DragStarted="HandleDragStart"
-                                  DeleteClicked="DeleteTask"
-                                  EditClicked="OpenEditModal" />
+                        var task = column.Tasks[i];
+                        var index = i;
+                        <div class="drop-zone @(dragOverColumnId == column.Id && dragOverIndex == index ? "drop-zone-active" : "")"
+                             ondragover="event.preventDefault();"
+                             @ondragenter="() => SetDragOver(column.Id, index)"
+                             @ondrop="() => HandleDropAt(column.Id, index)">
+                            <TaskCard Task="task"
+                                      LabelClass="@GetLabelClass(task.Id)"
+                                      DragStarted="HandleDragStart"
+                                      DeleteClicked="DeleteTask"
+                                      EditClicked="OpenEditModal" />
+                        </div>
                     }
+                    <div class="drop-zone @(dragOverColumnId == column.Id && dragOverIndex == column.Tasks.Count ? "drop-zone-active" : "")"
+                         ondragover="event.preventDefault();"
+                         @ondragenter="() => SetDragOver(column.Id, column.Tasks.Count)"
+                         @ondrop="() => HandleDropAt(column.Id, column.Tasks.Count)">
+                    </div>
                 </div>
 
                 <AddCardForm IsVisible="showAddCard.ContainsKey(column.Id) && showAddCard[column.Id]"
@@ -129,6 +141,18 @@ else
         margin-top: 4px;
     }
 
+    .drop-zone {
+        border-radius: 8px;
+        transition: background 0.15s, border-color 0.15s;
+        min-height: 4px;
+    }
+
+    .drop-zone-active {
+        background: rgba(12, 102, 228, 0.12);
+        border: 2px dashed #0c66e4;
+        min-height: 40px;
+    }
+
     .kanban-board::-webkit-scrollbar {
         height: 8px;
     }
@@ -155,6 +179,8 @@ else
     private string? errorMessage;
     private bool editModalVisible;
     private TaskItem? editingTask;
+    private int dragOverColumnId;
+    private int dragOverIndex;
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,22 +225,63 @@ else
         draggedTaskId = taskId;
     }
 
+    private void SetDragOver(int columnId, int index)
+    {
+        dragOverColumnId = columnId;
+        dragOverIndex = index;
+    }
+
     private async Task HandleDrop(int targetColumnId)
+    {
+        if (draggedTaskId == 0) return;
+        await HandleDropAt(targetColumnId, -1);
+    }
+
+    private async Task HandleDropAt(int targetColumnId, int targetIndex)
     {
         if (draggedTaskId == 0) return;
 
         try
         {
-            var dto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
-            var response = await Http.PostAsJsonAsync("api/kanban/move-task", dto);
+            if (columns == null) return;
 
-            if (!response.IsSuccessStatusCode)
+            var draggedTask = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == draggedTaskId);
+            if (draggedTask == null) return;
+
+            var isSameColumn = draggedTask.ColumnId == targetColumnId;
+
+            if (isSameColumn && targetIndex >= 0)
             {
-                errorMessage = "Error al mover la tarea. Inténtalo de nuevo.";
-                return;
+                var currentIndex = columns.First(c => c.Id == targetColumnId)
+                    .Tasks.FindIndex(t => t.Id == draggedTaskId);
+
+                if (currentIndex == targetIndex || currentIndex == targetIndex - 1)
+                {
+                    draggedTaskId = 0;
+                    dragOverColumnId = 0;
+                    dragOverIndex = 0;
+                    return;
+                }
+
+                var adjustedIndex = targetIndex > currentIndex ? targetIndex - 1 : targetIndex;
+
+                var dto = new ReorderTaskDto
+                {
+                    TaskId = draggedTaskId,
+                    TargetColumnId = targetColumnId,
+                    NewOrder = adjustedIndex
+                };
+                await Http.PostAsJsonAsync("api/kanban/reorder-task", dto);
+            }
+            else
+            {
+                var moveDto = new MoveTaskDto { TaskId = draggedTaskId, TargetColumnId = targetColumnId };
+                await Http.PostAsJsonAsync("api/kanban/move-task", moveDto);
             }
 
             draggedTaskId = 0;
+            dragOverColumnId = 0;
+            dragOverIndex = 0;
             await LoadBoard();
         }
         catch (Exception ex)

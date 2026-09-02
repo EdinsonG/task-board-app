@@ -80,18 +80,61 @@ public class KanbanController : ControllerBase
             if (!columnExists)
                 return BadRequest(new { message = $"La columna con ID {dto.TargetColumnId} no existe" });
 
+            var newOrder = await _db.Tasks.CountAsync(t => t.ColumnId == dto.TargetColumnId) + 1;
+
             task.ColumnId = dto.TargetColumnId;
-            task.Order = await _db.Tasks.CountAsync(t => t.ColumnId == dto.TargetColumnId) + 1;
+            task.Order = newOrder;
 
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Tarea {TaskId} movida a columna {ColumnId}", dto.TaskId, dto.TargetColumnId);
-            return Ok();
+            _logger.LogInformation("Tarea {TaskId} movida a columna {ColumnId} (orden {Order})", dto.TaskId, dto.TargetColumnId, newOrder);
+            return Ok(new { task.Id, task.ColumnId, task.Order });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al mover la tarea {TaskId}", dto.TaskId);
             return StatusCode(500, new { message = "Error al mover la tarea" });
+        }
+    }
+
+    [HttpPost("reorder-task")]
+    public async Task<IActionResult> ReorderTask([FromBody] ReorderTaskDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var task = await _db.Tasks.FindAsync(dto.TaskId);
+            if (task == null)
+                return NotFound(new { message = $"Tarea con ID {dto.TaskId} no encontrada" });
+
+            var columnExists = await _db.Columns.AnyAsync(c => c.Id == dto.TargetColumnId);
+            if (!columnExists)
+                return BadRequest(new { message = $"La columna con ID {dto.TargetColumnId} no existe" });
+
+            var tasksInColumn = await _db.Tasks
+                .Where(t => t.ColumnId == dto.TargetColumnId && t.Id != dto.TaskId)
+                .OrderBy(t => t.Order)
+                .ToListAsync();
+
+            task.ColumnId = dto.TargetColumnId;
+            tasksInColumn.Insert(Math.Min(dto.NewOrder, tasksInColumn.Count), task);
+
+            for (int i = 0; i < tasksInColumn.Count; i++)
+            {
+                tasksInColumn[i].Order = i + 1;
+            }
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Tarea {TaskId} reordenada en columna {ColumnId} a posición {Order}", dto.TaskId, dto.TargetColumnId, task.Order);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al reordenar la tarea {TaskId}", dto.TaskId);
+            return StatusCode(500, new { message = "Error al reordenar la tarea" });
         }
     }
 
