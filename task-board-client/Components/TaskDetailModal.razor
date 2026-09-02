@@ -27,13 +27,17 @@
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
-                        Título
+                        Título <span class="required">*</span>
                     </label>
                     <input type="text"
-                           class="field-input"
+                           class="field-input @(showValidation && string.IsNullOrWhiteSpace(Title) ? "field-error" : "")"
                            @bind="Title"
                            @bind:event="oninput"
                            placeholder="Título de la tarea" />
+                    @if (showValidation && string.IsNullOrWhiteSpace(Title))
+                    {
+                        <span class="field-error-text">El título es obligatorio</span>
+                    }
                 </div>
 
                 <div class="section">
@@ -44,13 +48,17 @@
                             <line x1="21" y1="14" x2="3" y2="14"></line>
                             <line x1="17" y1="18" x2="3" y2="18"></line>
                         </svg>
-                        Descripción
+                        Descripción <span class="required">*</span>
                     </label>
-                    <textarea class="field-textarea"
+                    <textarea class="field-textarea @(showValidation && string.IsNullOrWhiteSpace(Description) ? "field-error" : "")"
                               @bind="Description"
                               @bind:event="oninput"
                               placeholder="Agrega una descripción más detallada..."
                               rows="5"></textarea>
+                    @if (showValidation && string.IsNullOrWhiteSpace(Description))
+                    {
+                        <span class="field-error-text">La descripción es obligatoria</span>
+                    }
                 </div>
 
                 <div class="section">
@@ -59,7 +67,7 @@
                             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                             <line x1="7" y1="7" x2="7.01" y2="7"></line>
                         </svg>
-                        Etiquetas
+                        Etiquetas <span class="required">*</span>
                     </label>
                     <div class="labels-grid">
                         @foreach (var label in AvailableLabels)
@@ -73,6 +81,10 @@
                             </button>
                         }
                     </div>
+                    @if (showValidation && SelectedLabels.Count == 0)
+                    {
+                        <span class="field-error-text">Selecciona al menos una etiqueta</span>
+                    }
                 </div>
 
                 <div class="section">
@@ -83,13 +95,14 @@
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        Fecha límite
+                        Fecha límite <span class="required">*</span>
                     </label>
                     <div class="date-row">
                         <input type="date"
-                               class="field-input date-input"
+                               class="field-input date-input @(showValidation && !DueDate.HasValue ? "field-error" : "")"
                                @bind="DueDate"
-                               @bind:format="yyyy-MM-dd" />
+                               @bind:format="yyyy-MM-dd"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         @if (DueDate.HasValue)
                         {
                             <button class="date-clear" @onclick="() => DueDate = null">
@@ -100,6 +113,10 @@
                             </button>
                         }
                     </div>
+                    @if (showValidation && !DueDate.HasValue)
+                    {
+                        <span class="field-error-text">La fecha límite es obligatoria</span>
+                    }
                     @if (DueDate.HasValue)
                     {
                         var diff = DueDate.Value.Date - DateTime.Today;
@@ -145,7 +162,7 @@
                 </div>
                 <div class="footer-right">
                     <button class="btn-cancel" @onclick="OnCancel">Cancelar</button>
-                    <button class="btn-save" @onclick="OnSave" disabled="@(!IsValid)">Guardar</button>
+                    <button class="btn-save" @onclick="OnSaveWithValidation" disabled="@(!IsValid)">Guardar</button>
                 </div>
             </div>
         </div>
@@ -445,6 +462,24 @@
         cursor: not-allowed;
     }
 
+    .required {
+        color: #ae1e09;
+        font-weight: 700;
+    }
+
+    .field-error {
+        border-color: #ff5630 !important;
+        box-shadow: 0 0 0 1px #ff5630 !important;
+    }
+
+    .field-error-text {
+        display: block;
+        color: #ae1e09;
+        font-size: 0.73rem;
+        margin-top: 4px;
+        font-weight: 500;
+    }
+
     @@keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -484,6 +519,7 @@
     private string Description { get; set; } = string.Empty;
     private DateTime? DueDate { get; set; }
     private HashSet<string> SelectedLabels { get; set; } = new();
+    private bool showValidation;
 
     private readonly Dictionary<string, string> AvailableLabels = new()
     {
@@ -497,7 +533,11 @@
         { "Diseño", "#f472b6" }
     };
 
-    private bool IsValid => !string.IsNullOrWhiteSpace(Title);
+    private bool IsValid =>
+        !string.IsNullOrWhiteSpace(Title) &&
+        !string.IsNullOrWhiteSpace(Description) &&
+        SelectedLabels.Count > 0 &&
+        DueDate.HasValue;
 
     private bool HasChanges =>
         Task != null &&
@@ -516,6 +556,15 @@
             SelectedLabels = string.IsNullOrWhiteSpace(Task.Labels)
                 ? new HashSet<string>()
                 : new HashSet<string>(Task.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            showValidation = false;
+        }
+        else if (IsVisible && Task == null)
+        {
+            Title = string.Empty;
+            Description = string.Empty;
+            DueDate = null;
+            SelectedLabels = new HashSet<string>();
+            showValidation = false;
         }
     }
 
@@ -527,9 +576,16 @@
             SelectedLabels.Add(label);
     }
 
-    private async Task OnSave()
+    private async Task OnSaveWithValidation()
     {
-        if (!IsValid || Task == null) return;
+        showValidation = true;
+
+        if (!IsValid) return;
+
+        if (DueDate.HasValue && DueDate.Value.Date < DateTime.Today)
+        {
+            return;
+        }
 
         await Save.InvokeAsync(new UpdateTaskDto
         {
@@ -542,6 +598,7 @@
 
     private async Task OnCancel()
     {
+        showValidation = false;
         await Cancel.InvokeAsync();
     }
 }
