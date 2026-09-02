@@ -14,6 +14,12 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<ColumnItem>()
+            .HasMany(c => c.Tasks)
+            .WithOne()
+            .HasForeignKey(t => t.ColumnId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<ColumnItem>().HasData(
             new ColumnItem { Id = 1, Name = "Por Hacer", Order = 1 },
             new ColumnItem { Id = 2, Name = "En Proceso", Order = 2 },
