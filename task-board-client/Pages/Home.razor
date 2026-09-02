@@ -78,6 +78,24 @@ else if (columns != null)
                 </button>
             }
         </div>
+        <div class="shortcuts-help" @onclick="ToggleShortcutsHelp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <path d="M6 8h.001"></path><path d="M10 8h.001"></path><path d="M14 8h.001"></path>
+                <path d="M8 12h.001"></path><path d="M12 12h.001"></path><path d="M16 12h.001"></path>
+                <path d="M7 16h10"></path>
+            </svg>
+            @if (showShortcuts)
+            {
+                <div class="shortcuts-tooltip">
+                    <div class="shortcuts-title">Atajos de teclado</div>
+                    <div class="shortcut-row"><kbd>N</kbd> Nueva tarea</div>
+                    <div class="shortcut-row"><kbd>E</kbd> Editar primera tarea</div>
+                    <div class="shortcut-row"><kbd>Ctrl+Z</kbd> Deshacer</div>
+                    <div class="shortcut-row"><kbd>Esc</kbd> Cerrar modal</div>
+                </div>
+            }
+        </div>
     </div>
 
     <div class="kanban-board">
@@ -104,7 +122,27 @@ else if (columns != null)
                                       LabelClass="@GetLabelClass(task.Id)"
                                       DragStarted="HandleDragStart"
                                       DeleteClicked="ConfirmDeleteTask"
-                                      EditClicked="OpenEditModal" />
+                                      EditClicked="OpenEditModal"
+                                      ArchiveClicked="ArchiveTask" />
+                        </div>
+                    }
+                    @if (GetFilteredTasks(column).Count == 0)
+                    {
+                        <div class="empty-column">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                            </svg>
+                            @if (!string.IsNullOrWhiteSpace(searchTerm))
+                            {
+                                <span class="empty-text">Sin resultados para "@searchTerm"</span>
+                            }
+                            else
+                            {
+                                <span class="empty-text">Sin tareas aún</span>
+                                <span class="empty-hint">Arrastra o crea una nueva</span>
+                            }
                         </div>
                     }
                     <div class="drop-zone @(dragOverColumnId == column.Id && dragOverIndex == column.Tasks.Count ? "drop-zone-active" : "")"
@@ -301,6 +339,64 @@ else if (columns != null)
         color: white;
     }
 
+    .shortcuts-help {
+        position: relative;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .shortcuts-help:hover {
+        background: rgba(255,255,255,0.15);
+        color: white;
+    }
+
+    .shortcuts-tooltip {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 6px;
+        background: #1d2125;
+        border-radius: 8px;
+        padding: 10px 14px;
+        min-width: 200px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        z-index: 100;
+        color: #b6c2cf;
+        font-size: 0.75rem;
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    .shortcuts-title {
+        font-weight: 700;
+        color: white;
+        margin-bottom: 8px;
+        font-size: 0.8rem;
+    }
+
+    .shortcut-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .shortcut-row kbd {
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: monospace;
+        font-size: 0.7rem;
+        color: white;
+        min-width: 24px;
+        text-align: center;
+    }
+
     .kanban-board {
         display: flex;
         gap: 14px;
@@ -332,6 +428,26 @@ else if (columns != null)
         background: rgba(12, 102, 228, 0.12);
         border: 2px dashed #0c66e4;
         min-height: 40px;
+    }
+
+    .empty-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 12px;
+        gap: 6px;
+        color: rgba(255,255,255,0.5);
+    }
+
+    .empty-text {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .empty-hint {
+        font-size: 0.7rem;
+        opacity: 0.6;
     }
 
     .kanban-board::-webkit-scrollbar {
@@ -388,6 +504,11 @@ else if (columns != null)
             min-height: 32px;
         }
     }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 
 @code {
@@ -406,10 +527,53 @@ else if (columns != null)
     private Dictionary<int, string> columnNames = new();
     private UndoAction? lastAction;
     private CancellationTokenSource? undoTimerCts;
+    private bool showShortcuts;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadBoard();
+        var dotNetRef = DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync("keyboardShortcuts.init", dotNetRef);
+    }
+
+    [JSInvokable]
+    public async Task OnKeyDown(string key, bool ctrlKey, bool metaKey, bool isInput)
+    {
+        if (key == "Escape")
+        {
+            if (editModalVisible)
+            {
+                CloseEditModal();
+                StateHasChanged();
+            }
+            return;
+        }
+
+        if (isInput) return;
+
+        if ((ctrlKey || metaKey) && key == "z")
+        {
+            await Undo();
+            return;
+        }
+
+        if (key == "n" || key == "N")
+        {
+            showAddColumn = true;
+            StateHasChanged();
+            return;
+        }
+
+        if ((key == "e" || key == "E") && columns != null)
+        {
+            var firstTask = columns.SelectMany(c => c.Tasks).FirstOrDefault();
+            if (firstTask != null)
+            {
+                editingTask = firstTask;
+                editModalVisible = true;
+                StateHasChanged();
+            }
+        }
     }
 
     public void Dispose()
@@ -574,6 +738,55 @@ else if (columns != null)
         catch (Exception ex)
         {
             errorMessage = $"Error al crear la tarea: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ArchiveTask(int taskId)
+    {
+        if (columns == null) return;
+        var task = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == taskId);
+        if (task == null) return;
+
+        var completedColumn = columns.FirstOrDefault(c => c.Name == "Completado");
+        if (completedColumn == null)
+        {
+            errorMessage = "No se encontró la columna 'Completado' para archivar.";
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var originalColumnId = task.ColumnId;
+            var dto = new MoveTaskDto { TaskId = taskId, TargetColumnId = completedColumn.Id };
+            var response = await Kanban.MoveTaskAsync(dto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al archivar la tarea.";
+                return;
+            }
+
+            SetUndo(new UndoAction
+            {
+                Type = UndoType.Move,
+                TaskId = taskId,
+                ColumnId = originalColumnId
+            });
+
+            ShowSuccess("Tarea archivada");
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al archivar: {ex.Message}";
         }
         finally
         {
@@ -793,6 +1006,12 @@ else if (columns != null)
             isLoading = false;
             StateHasChanged();
         }
+    }
+
+    private void ToggleShortcutsHelp()
+    {
+        showShortcuts = !showShortcuts;
+        StateHasChanged();
     }
 
     private void ShowSuccess(string message)
