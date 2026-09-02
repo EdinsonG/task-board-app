@@ -95,6 +95,33 @@ public class KanbanController : ControllerBase
         }
     }
 
+    [HttpPut("task/{id}")]
+    public async Task<IActionResult> UpdateTask(int id, [FromBody] UpdateTaskDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var task = await _db.Tasks.FindAsync(id);
+            if (task == null)
+                return NotFound(new { message = $"Tarea con ID {id} no encontrada" });
+
+            task.Title = dto.Title;
+            task.Description = dto.Description;
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Tarea actualizada: {TaskId} - {Title}", id, dto.Title);
+            return Ok(task);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar la tarea {TaskId}", id);
+            return StatusCode(500, new { message = "Error al actualizar la tarea" });
+        }
+    }
+
     [HttpDelete("task/{id}")]
     public async Task<IActionResult> DeleteTask(int id)
     {

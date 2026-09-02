@@ -47,7 +47,8 @@ else
                         <TaskCard Task="task"
                                   LabelClass="@GetLabelClass(task.Id)"
                                   DragStarted="HandleDragStart"
-                                  DeleteClicked="DeleteTask" />
+                                  DeleteClicked="DeleteTask"
+                                  EditClicked="OpenEditModal" />
                     }
                 </div>
 
@@ -58,6 +59,11 @@ else
         }
     </div>
 }
+
+<EditTaskModal IsVisible="editModalVisible"
+               Task="editingTask"
+               Cancel="CloseEditModal"
+               Save="UpdateTask" />
 
 <style>
     .error-banner {
@@ -147,6 +153,8 @@ else
     private Dictionary<int, bool> showAddCard = new();
     private int draggedTaskId;
     private string? errorMessage;
+    private bool editModalVisible;
+    private TaskItem? editingTask;
 
     protected override async Task OnInitializedAsync()
     {
@@ -263,6 +271,43 @@ else
         catch (Exception ex)
         {
             errorMessage = $"Error al eliminar la tarea: {ex.Message}";
+        }
+    }
+
+    private void OpenEditModal(int taskId)
+    {
+        if (columns == null) return;
+        editingTask = columns.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Id == taskId);
+        if (editingTask != null)
+            editModalVisible = true;
+    }
+
+    private void CloseEditModal()
+    {
+        editModalVisible = false;
+        editingTask = null;
+    }
+
+    private async Task UpdateTask(UpdateTaskDto dto)
+    {
+        if (editingTask == null) return;
+
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/kanban/task/{editingTask.Id}", dto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al actualizar la tarea. Inténtalo de nuevo.";
+                return;
+            }
+
+            CloseEditModal();
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al actualizar la tarea: {ex.Message}";
         }
     }
 }

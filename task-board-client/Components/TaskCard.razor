@@ -33,7 +33,14 @@
         </div>
     </div>
 
-    <button class="card-edit-btn" @onclick="OnDelete">
+    <button class="card-action-btn card-edit-btn" @onclick="OnEdit" title="Editar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+    </button>
+
+    <button class="card-action-btn card-delete-btn" @onclick="OnDelete" title="Eliminar">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -142,10 +149,9 @@
         object-fit: cover;
     }
 
-    .card-edit-btn {
+    .card-action-btn {
         position: absolute;
         top: 4px;
-        right: 4px;
         background: rgba(255, 255, 255, 0.9);
         border: 1px solid #d0d4dc;
         border-radius: 4px;
@@ -158,13 +164,27 @@
         transition: background 0.15s;
     }
 
-    .task-card:hover .card-edit-btn {
+    .card-edit-btn {
+        right: 28px;
+    }
+
+    .card-delete-btn {
+        right: 4px;
+    }
+
+    .task-card:hover .card-action-btn {
         display: flex;
     }
 
-    .card-edit-btn:hover {
+    .card-action-btn:hover {
         background: #f1f2f4;
         color: #172b4d;
+    }
+
+    .card-delete-btn:hover {
+        background: #ffeceb;
+        color: #ae1e09;
+        border-color: #ff5630;
     }
 </style>
 
@@ -173,10 +193,16 @@
     [Parameter] public string LabelClass { get; set; } = "label-yellow";
     [Parameter] public EventCallback<int> DragStarted { get; set; }
     [Parameter] public EventCallback<int> DeleteClicked { get; set; }
+    [Parameter] public EventCallback<int> EditClicked { get; set; }
 
     private void OnDragStart()
     {
         DragStarted.InvokeAsync(Task.Id);
+    }
+
+    private void OnEdit()
+    {
+        EditClicked.InvokeAsync(Task.Id);
     }
 
     private void OnDelete()

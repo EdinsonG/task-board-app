@@ -1,0 +1,225 @@
+@using task_board_client.Models
+
+@if (IsVisible)
+{
+    <div class="modal-overlay" @onclick="OnCancel">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Editar tarea</h3>
+                <button class="modal-close" @onclick="OnCancel">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <label class="field-label">Título</label>
+                <input type="text"
+                       class="field-input"
+                       @bind="Title"
+                       @bind:event="oninput"
+                       placeholder="Título de la tarea" />
+
+                <label class="field-label">Descripción</label>
+                <textarea class="field-textarea"
+                          @bind="Description"
+                          @bind:event="oninput"
+                          placeholder="Descripción de la tarea"
+                          rows="4"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" @onclick="OnCancel">Cancelar</button>
+                <button class="btn-save" @onclick="OnSave" disabled="@(!IsValid)">Guardar</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 480px;
+        max-width: 90vw;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e1e4e8;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: #172b4d;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-close:hover {
+        background: #f1f2f4;
+        color: #172b4d;
+    }
+
+    .modal-body {
+        padding: 16px 20px;
+    }
+
+    .field-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #626f86;
+        margin-bottom: 4px;
+        margin-top: 12px;
+    }
+
+    .field-label:first-child {
+        margin-top: 0;
+    }
+
+    .field-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d0d4dc;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        color: #172b4d;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .field-input:focus {
+        border-color: #0c66e4;
+        box-shadow: 0 0 0 1px #0c66e4;
+    }
+
+    .field-textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d0d4dc;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        color: #172b4d;
+        outline: none;
+        resize: vertical;
+        transition: border-color 0.15s;
+    }
+
+    .field-textarea:focus {
+        border-color: #0c66e4;
+        box-shadow: 0 0 0 1px #0c66e4;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 20px;
+        border-top: 1px solid #e1e4e8;
+    }
+
+    .btn-cancel {
+        background: none;
+        border: 1px solid #d0d4dc;
+        color: #626f86;
+        padding: 6px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-cancel:hover {
+        background: #f1f2f4;
+    }
+
+    .btn-save {
+        background: #0c66e4;
+        color: white;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-save:hover {
+        background: #0055cc;
+    }
+
+    .btn-save:disabled {
+        background: #a6c5e9;
+        cursor: not-allowed;
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public TaskItem? Task { get; set; }
+    [Parameter] public EventCallback Cancel { get; set; }
+    [Parameter] public EventCallback<UpdateTaskDto> Save { get; set; }
+
+    private string Title { get; set; } = string.Empty;
+    private string Description { get; set; } = string.Empty;
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(Title);
+
+    protected override void OnParametersSet()
+    {
+        if (Task != null && IsVisible)
+        {
+            Title = Task.Title;
+            Description = Task.Description;
+        }
+    }
+
+    private async Task OnSave()
+    {
+        if (!IsValid || Task == null) return;
+
+        await Save.InvokeAsync(new UpdateTaskDto
+        {
+            Title = Title,
+            Description = Description
+        });
+    }
+
+    private async Task OnCancel()
+    {
+        await Cancel.InvokeAsync();
+    }
+}
