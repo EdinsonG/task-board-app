@@ -1,0 +1,142 @@
+<div class="add-card-section">
+    @if (!IsVisible)
+    {
+        <button class="add-card-btn" @onclick="OnToggle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add a card
+        </button>
+    }
+    else
+    {
+        <div class="add-card-form">
+            <textarea placeholder="Enter a title for this card..."
+                      @bind="Title"
+                      @bind:event="oninput"
+                      rows="2"></textarea>
+            <div class="add-card-actions">
+                <button class="add-card-submit" @onclick="OnSubmit">Add card</button>
+                <button class="add-card-cancel" @onclick="OnToggle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .add-card-section {
+        padding: 4px 0;
+    }
+
+    .add-card-btn {
+        width: 100%;
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .add-card-btn:hover {
+        background: rgba(9, 30, 66, 0.08);
+        color: #172b4d;
+    }
+
+    .add-card-form {
+        background: white;
+        border-radius: 8px;
+        padding: 8px;
+        box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
+    }
+
+    .add-card-form textarea {
+        width: 100%;
+        border: none;
+        outline: none;
+        resize: none;
+        font-size: 0.85rem;
+        font-family: inherit;
+        color: #172b4d;
+        padding: 4px 0;
+    }
+
+    .add-card-form textarea::placeholder {
+        color: #8993a4;
+    }
+
+    .add-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .add-card-submit {
+        background: #0c66e4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .add-card-submit:hover {
+        background: #0055cc;
+    }
+
+    .add-card-cancel {
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .add-card-cancel:hover {
+        background: rgba(9, 30, 66, 0.08);
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback ToggleVisibility { get; set; }
+    [Parameter] public EventCallback<string> SubmitCard { get; set; }
+
+    private string Title { get; set; } = string.Empty;
+
+    private async Task OnToggle()
+    {
+        Title = string.Empty;
+        await ToggleVisibility.InvokeAsync();
+    }
+
+    private async Task OnSubmit()
+    {
+        if (!string.IsNullOrWhiteSpace(Title))
+        {
+            var titleToSubmit = Title;
+            Title = string.Empty;
+            await SubmitCard.InvokeAsync(titleToSubmit);
+        }
+    }
+}

@@ -1,0 +1,47 @@
+<div class="column-header">
+    <span class="column-title">@Title</span>
+    <button class="column-menu-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="5" r="1"></circle>
+            <circle cx="12" cy="12" r="1"></circle>
+            <circle cx="12" cy="19" r="1"></circle>
+        </svg>
+    </button>
+</div>
+
+<style>
+    .column-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 8px 4px 8px;
+    }
+
+    .column-title {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #172b4d;
+        letter-spacing: 0.2px;
+    }
+
+    .column-menu-btn {
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .column-menu-btn:hover {
+        background: rgba(9, 30, 66, 0.08);
+    }
+</style>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+}

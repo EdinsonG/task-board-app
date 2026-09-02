@@ -21,94 +21,21 @@ else
                  ondragover="event.preventDefault();"
                  @ondrop="() => HandleDrop(column.Id)">
 
-                <div class="column-header">
-                    <span class="column-title">@column.Name</span>
-                    <button class="column-menu-btn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="5" r="1"></circle>
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="12" cy="19" r="1"></circle>
-                        </svg>
-                    </button>
-                </div>
+                <ColumnHeader Title="@column.Name" />
 
                 <div class="task-list">
                     @foreach (var task in column.Tasks)
                     {
-                        var labelClass = GetLabelClass(task.Id);
-                        <div class="task-card"
-                             draggable="true"
-                             @ondragstart="() => HandleDragStart(task.Id)">
-
-                            <div class="card-labels">
-                                <span class="card-label @labelClass"></span>
-                            </div>
-
-                            <div class="card-title">@task.Title</div>
-                            <div class="card-description">@task.Description</div>
-
-                            <div class="card-footer">
-                                <div class="card-badges">
-                                    <span class="badge">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14 2 14 8 20 8"></polyline>
-                                        </svg>
-                                    </span>
-                                    <span class="badge">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="card-avatars">
-                                    <div class="mini-avatar">
-                                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=@task.Id" alt="avatar" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button class="card-edit-btn" @onclick="() => DeleteTask(task.Id)">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
+                        <TaskCard Task="task"
+                                  LabelClass="@GetLabelClass(task.Id)"
+                                  DragStarted="HandleDragStart"
+                                  DeleteClicked="DeleteTask" />
                     }
                 </div>
 
-                <div class="add-card-section">
-                    @if (!showAddCard.ContainsKey(column.Id) || !showAddCard[column.Id])
-                    {
-                        <button class="add-card-btn" @onclick="() => ToggleAddCard(column.Id)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Add a card
-                        </button>
-                    }
-                    else
-                    {
-                        <div class="add-card-form">
-                            <textarea placeholder="Enter a title for this card..."
-                                      @bind="newTaskTitles[column.Id]"
-                                      @bind:event="oninput"
-                                      rows="2"></textarea>
-                            <div class="add-card-actions">
-                                <button class="add-card-submit" @onclick="() => CreateTask(column.Id)">Add card</button>
-                                <button class="add-card-cancel" @onclick="() => ToggleAddCard(column.Id)">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
+                <AddCardForm IsVisible="showAddCard.ContainsKey(column.Id) && showAddCard[column.Id]"
+                             ToggleVisibility="() => ToggleAddCard(column.Id)"
+                             SubmitCard="(title) => CreateTask(column.Id, title)" />
             </div>
         }
     </div>
@@ -144,251 +71,9 @@ else
         box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
     }
 
-    .column-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 6px 8px 4px 8px;
-    }
-
-    .column-title {
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: #172b4d;
-        letter-spacing: 0.2px;
-    }
-
-    .column-menu-btn {
-        background: none;
-        border: none;
-        color: #626f86;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.15s;
-    }
-
-    .column-menu-btn:hover {
-        background: rgba(9, 30, 66, 0.08);
-    }
-
     .task-list {
         min-height: 8px;
         margin-top: 4px;
-    }
-
-    .task-card {
-        background: white;
-        border-radius: 8px;
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
-        cursor: grab;
-        position: relative;
-        transition: box-shadow 0.15s, background 0.15s;
-        border: 1px solid transparent;
-    }
-
-    .task-card:hover {
-        background: #f7f8f9;
-        border-color: #d0d4dc;
-    }
-
-    .task-card:active {
-        cursor: grabbing;
-    }
-
-    .card-labels {
-        display: flex;
-        gap: 4px;
-        margin-bottom: 6px;
-    }
-
-    .card-label {
-        height: 8px;
-        width: 40px;
-        border-radius: 4px;
-    }
-
-    .label-yellow { background: #f5cd47; }
-    .label-blue { background: #579dff; }
-    .label-green { background: #4bce97; }
-    .label-pink { background: #f472b6; }
-    .label-purple { background: #9f8fef; }
-    .label-orange { background: #fea362; }
-
-    .card-title {
-        font-size: 0.85rem;
-        color: #172b4d;
-        line-height: 1.4;
-        margin-bottom: 2px;
-        word-wrap: break-word;
-    }
-
-    .card-description {
-        font-size: 0.75rem;
-        color: #626f86;
-        line-height: 1.4;
-        margin-bottom: 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 4px;
-    }
-
-    .card-badges {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .badge {
-        display: flex;
-        align-items: center;
-        color: #626f86;
-    }
-
-    .card-avatars {
-        display: flex;
-    }
-
-    .mini-avatar {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        overflow: hidden;
-        border: 2px solid white;
-        margin-left: -6px;
-    }
-
-    .mini-avatar:first-child {
-        margin-left: 0;
-    }
-
-    .mini-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .card-edit-btn {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid #d0d4dc;
-        border-radius: 4px;
-        color: #626f86;
-        cursor: pointer;
-        padding: 4px;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.15s;
-    }
-
-    .task-card:hover .card-edit-btn {
-        display: flex;
-    }
-
-    .card-edit-btn:hover {
-        background: #f1f2f4;
-        color: #172b4d;
-    }
-
-    .add-card-section {
-        padding: 4px 0;
-    }
-
-    .add-card-btn {
-        width: 100%;
-        background: none;
-        border: none;
-        color: #626f86;
-        cursor: pointer;
-        padding: 8px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.85rem;
-        transition: background 0.15s, color 0.15s;
-    }
-
-    .add-card-btn:hover {
-        background: rgba(9, 30, 66, 0.08);
-        color: #172b4d;
-    }
-
-    .add-card-form {
-        background: white;
-        border-radius: 8px;
-        padding: 8px;
-        box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
-    }
-
-    .add-card-form textarea {
-        width: 100%;
-        border: none;
-        outline: none;
-        resize: none;
-        font-size: 0.85rem;
-        font-family: inherit;
-        color: #172b4d;
-        padding: 4px 0;
-    }
-
-    .add-card-form textarea::placeholder {
-        color: #8993a4;
-    }
-
-    .add-card-actions {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 8px;
-    }
-
-    .add-card-submit {
-        background: #0c66e4;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 16px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-
-    .add-card-submit:hover {
-        background: #0055cc;
-    }
-
-    .add-card-cancel {
-        background: none;
-        border: none;
-        color: #626f86;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.15s;
-    }
-
-    .add-card-cancel:hover {
-        background: rgba(9, 30, 66, 0.08);
     }
 
     .kanban-board::-webkit-scrollbar {
@@ -412,7 +97,6 @@ else
 
 @code {
     private List<ColumnItem>? columns;
-    private Dictionary<int, string> newTaskTitles = new();
     private Dictionary<int, bool> showAddCard = new();
     private int draggedTaskId;
 
@@ -428,8 +112,6 @@ else
         {
             foreach (var col in columns)
             {
-                if (!newTaskTitles.ContainsKey(col.Id))
-                    newTaskTitles[col.Id] = string.Empty;
                 if (!showAddCard.ContainsKey(col.Id))
                     showAddCard[col.Id] = false;
             }
@@ -464,10 +146,9 @@ else
         await LoadBoard();
     }
 
-    private async Task CreateTask(int columnId)
+    private async Task CreateTask(int columnId, string title)
     {
-        if (!newTaskTitles.TryGetValue(columnId, out var title) || string.IsNullOrWhiteSpace(title))
-            return;
+        if (string.IsNullOrWhiteSpace(title)) return;
 
         var newTask = new TaskItem
         {
@@ -478,7 +159,6 @@ else
         };
 
         await Http.PostAsJsonAsync("api/kanban/task", newTask);
-        newTaskTitles[columnId] = string.Empty;
         showAddCard[columnId] = false;
         await LoadBoard();
     }

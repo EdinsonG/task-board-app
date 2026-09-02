@@ -1,0 +1,186 @@
+@using task_board_client.Models
+
+<div class="task-card"
+     draggable="true"
+     @ondragstart="OnDragStart">
+
+    <div class="card-labels">
+        <span class="card-label @LabelClass"></span>
+    </div>
+
+    <div class="card-title">@Task.Title</div>
+    <div class="card-description">@Task.Description</div>
+
+    <div class="card-footer">
+        <div class="card-badges">
+            <span class="badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+            </span>
+            <span class="badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </span>
+        </div>
+        <div class="card-avatars">
+            <div class="mini-avatar">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=@Task.Id" alt="avatar" />
+            </div>
+        </div>
+    </div>
+
+    <button class="card-edit-btn" @onclick="OnDelete">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </button>
+</div>
+
+<style>
+    .task-card {
+        background: white;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
+        cursor: grab;
+        position: relative;
+        transition: box-shadow 0.15s, background 0.15s;
+        border: 1px solid transparent;
+    }
+
+    .task-card:hover {
+        background: #f7f8f9;
+        border-color: #d0d4dc;
+    }
+
+    .task-card:active {
+        cursor: grabbing;
+    }
+
+    .card-labels {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
+
+    .card-label {
+        height: 8px;
+        width: 40px;
+        border-radius: 4px;
+    }
+
+    .label-yellow { background: #f5cd47; }
+    .label-blue { background: #579dff; }
+    .label-green { background: #4bce97; }
+    .label-pink { background: #f472b6; }
+    .label-purple { background: #9f8fef; }
+    .label-orange { background: #fea362; }
+
+    .card-title {
+        font-size: 0.85rem;
+        color: #172b4d;
+        line-height: 1.4;
+        margin-bottom: 2px;
+        word-wrap: break-word;
+    }
+
+    .card-description {
+        font-size: 0.75rem;
+        color: #626f86;
+        line-height: 1.4;
+        margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+    }
+
+    .card-badges {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .badge {
+        display: flex;
+        align-items: center;
+        color: #626f86;
+    }
+
+    .card-avatars {
+        display: flex;
+    }
+
+    .mini-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid white;
+        margin-left: -6px;
+    }
+
+    .mini-avatar:first-child {
+        margin-left: 0;
+    }
+
+    .mini-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .card-edit-btn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #d0d4dc;
+        border-radius: 4px;
+        color: #626f86;
+        cursor: pointer;
+        padding: 4px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .task-card:hover .card-edit-btn {
+        display: flex;
+    }
+
+    .card-edit-btn:hover {
+        background: #f1f2f4;
+        color: #172b4d;
+    }
+</style>
+
+@code {
+    [Parameter] public TaskItem Task { get; set; } = default!;
+    [Parameter] public string LabelClass { get; set; } = "label-yellow";
+    [Parameter] public EventCallback<int> DragStarted { get; set; }
+    [Parameter] public EventCallback<int> DeleteClicked { get; set; }
+
+    private void OnDragStart()
+    {
+        DragStarted.InvokeAsync(Task.Id);
+    }
+
+    private void OnDelete()
+    {
+        DeleteClicked.InvokeAsync(Task.Id);
+    }
+}
