@@ -1,0 +1,159 @@
+<div class="add-column-section">
+    @if (!IsVisible)
+    {
+        <button class="add-column-btn" @onclick="OnToggle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Añadir otra lista
+        </button>
+    }
+    else
+    {
+        <div class="add-column-form">
+            <input type="text"
+                   class="add-column-input"
+                   @bind="Name"
+                   @bind:event="oninput"
+                   @onkeydown="HandleKeyDown"
+                   placeholder="Introduce un nombre para la lista..."
+                   autofocus />
+            <div class="add-column-actions">
+                <button class="add-column-submit" @onclick="OnSubmit" disabled="@(!IsValid)">Añadir lista</button>
+                <button class="add-column-cancel" @onclick="OnToggle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .add-column-section {
+        min-width: 272px;
+    }
+
+    .add-column-btn {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.24);
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 10px 12px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: background 0.15s;
+    }
+
+    .add-column-btn:hover {
+        background: rgba(255, 255, 255, 0.36);
+    }
+
+    .add-column-form {
+        background: #f1f2f4;
+        border-radius: 12px;
+        padding: 8px;
+    }
+
+    .add-column-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 2px solid #0c66e4;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        color: #172b4d;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .add-column-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .add-column-submit {
+        background: #0c66e4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .add-column-submit:hover {
+        background: #0055cc;
+    }
+
+    .add-column-submit:disabled {
+        background: #a6c5e9;
+        cursor: not-allowed;
+    }
+
+    .add-column-cancel {
+        background: none;
+        border: none;
+        color: #626f86;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .add-column-cancel:hover {
+        background: rgba(9, 30, 66, 0.08);
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback ToggleVisibility { get; set; }
+    [Parameter] public EventCallback<string> SubmitColumn { get; set; }
+
+    private string Name { get; set; } = string.Empty;
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(Name);
+
+    private async Task OnToggle()
+    {
+        Name = string.Empty;
+        await ToggleVisibility.InvokeAsync();
+    }
+
+    private async Task OnSubmit()
+    {
+        if (!IsValid) return;
+
+        var nameToSubmit = Name;
+        Name = string.Empty;
+        await SubmitColumn.InvokeAsync(nameToSubmit);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && IsValid)
+        {
+            await OnSubmit();
+        }
+        else if (e.Key == "Escape")
+        {
+            await OnToggle();
+        }
+    }
+}

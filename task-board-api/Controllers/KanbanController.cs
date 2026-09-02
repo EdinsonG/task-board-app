@@ -186,4 +186,80 @@ public class KanbanController : ControllerBase
             return StatusCode(500, new { message = "Error al eliminar la tarea" });
         }
     }
+
+    [HttpPost("column")]
+    public async Task<ActionResult<ColumnItem>> CreateColumn([FromBody] CreateColumnDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var maxOrder = await _db.Columns.MaxAsync(c => (int?)c.Order) ?? 0;
+
+            var column = new ColumnItem
+            {
+                Name = dto.Name,
+                Order = maxOrder + 1
+            };
+
+            _db.Columns.Add(column);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Columna creada: {ColumnId} - {Name}", column.Id, column.Name);
+            return Ok(column);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear la columna");
+            return StatusCode(500, new { message = "Error al crear la columna" });
+        }
+    }
+
+    [HttpPut("column/{id}")]
+    public async Task<IActionResult> UpdateColumn(int id, [FromBody] UpdateColumnDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var column = await _db.Columns.FindAsync(id);
+            if (column == null)
+                return NotFound(new { message = $"Columna con ID {id} no encontrada" });
+
+            column.Name = dto.Name;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Columna actualizada: {ColumnId} - {Name}", id, dto.Name);
+            return Ok(column);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar la columna {ColumnId}", id);
+            return StatusCode(500, new { message = "Error al actualizar la columna" });
+        }
+    }
+
+    [HttpDelete("column/{id}")]
+    public async Task<IActionResult> DeleteColumn(int id)
+    {
+        try
+        {
+            var column = await _db.Columns.Include(c => c.Tasks).FirstOrDefaultAsync(c => c.Id == id);
+            if (column == null)
+                return NotFound(new { message = $"Columna con ID {id} no encontrada" });
+
+            _db.Columns.Remove(column);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Columna eliminada: {ColumnId} - {Name}", id, column.Name);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar la columna {ColumnId}", id);
+            return StatusCode(500, new { message = "Error al eliminar la columna" });
+        }
+    }
 }

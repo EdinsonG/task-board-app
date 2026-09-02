@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
 @using task_board_client.Models
 
 <PageTitle>Tablero Kanban</PageTitle>
@@ -37,7 +38,9 @@ else
         {
             <div class="kanban-column">
 
-                <ColumnHeader Title="@column.Name" />
+                <ColumnHeader Title="@column.Name"
+                              Renamed="(newName) => RenameColumn(column.Id, newName)"
+                              Deleted="() => ConfirmDeleteColumn(column.Id, column.Name)" />
 
                 <div class="task-list"
                      ondragover="event.preventDefault();"
@@ -69,6 +72,10 @@ else
                              SubmitCard="(title) => CreateTask(column.Id, title)" />
             </div>
         }
+
+        <AddColumnForm IsVisible="showAddColumn"
+                       ToggleVisibility="() => showAddColumn = !showAddColumn"
+                       SubmitColumn="CreateColumn" />
     </div>
 }
 
@@ -181,6 +188,7 @@ else
     private TaskItem? editingTask;
     private int dragOverColumnId;
     private int dragOverIndex;
+    private bool showAddColumn;
 
     protected override async Task OnInitializedAsync()
     {
@@ -375,6 +383,86 @@ else
         catch (Exception ex)
         {
             errorMessage = $"Error al actualizar la tarea: {ex.Message}";
+        }
+    }
+
+    private async Task CreateColumn(string name)
+    {
+        try
+        {
+            var dto = new CreateColumnDto { Name = name };
+            var response = await Http.PostAsJsonAsync("api/kanban/column", dto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al crear la columna. Inténtalo de nuevo.";
+                return;
+            }
+
+            showAddColumn = false;
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al crear la columna: {ex.Message}";
+        }
+    }
+
+    private async Task RenameColumn(int columnId, string newName)
+    {
+        try
+        {
+            var dto = new UpdateColumnDto { Name = newName };
+            var response = await Http.PutAsJsonAsync($"api/kanban/column/{columnId}", dto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al renombrar la columna. Inténtalo de nuevo.";
+                return;
+            }
+
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al renombrar la columna: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDeleteColumn(int columnId, string columnName)
+    {
+        if (columns == null) return;
+
+        var column = columns.FirstOrDefault(c => c.Id == columnId);
+        var taskCount = column?.Tasks.Count ?? 0;
+
+        var message = taskCount > 0
+            ? $"¿Eliminar la columna \"{columnName}\" y sus {taskCount} tarea(s)?"
+            : $"¿Eliminar la columna \"{columnName}\"?";
+
+        if (JSRuntime != null && await JSRuntime.InvokeAsync<bool>("confirm", message))
+        {
+            await DeleteColumn(columnId);
+        }
+    }
+
+    private async Task DeleteColumn(int columnId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/kanban/column/{columnId}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Error al eliminar la columna. Inténtalo de nuevo.";
+                return;
+            }
+
+            await LoadBoard();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al eliminar la columna: {ex.Message}";
         }
     }
 }

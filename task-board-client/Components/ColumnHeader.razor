@@ -1,12 +1,50 @@
+@using task_board_client.Models
+
 <div class="column-header">
-    <span class="column-title">@Title</span>
-    <button class="column-menu-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="5" r="1"></circle>
-            <circle cx="12" cy="12" r="1"></circle>
-            <circle cx="12" cy="19" r="1"></circle>
-        </svg>
-    </button>
+    @if (isEditing)
+    {
+        <input type="text"
+               class="column-title-input"
+               @bind="editName"
+               @bind:event="oninput"
+               @onkeydown="HandleEditKeyDown"
+               @onblur="SaveEdit"
+               autofocus />
+    }
+    else
+    {
+        <span class="column-title">@Title</span>
+    }
+
+    <div class="column-menu-wrapper">
+        <button class="column-menu-btn" @onclick="ToggleMenu" title="Menú de columna">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="5" r="1"></circle>
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+        </button>
+
+        @if (isMenuOpen)
+        {
+            <div class="column-dropdown">
+                <button class="dropdown-item" @onclick="StartRename">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Renombrar
+                </button>
+                <button class="dropdown-item dropdown-item-danger" @onclick="OnDelete">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Eliminar
+                </button>
+            </div>
+        }
+    </div>
 </div>
 
 <style>
@@ -22,6 +60,31 @@
         font-size: 0.85rem;
         color: #172b4d;
         letter-spacing: 0.2px;
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: background 0.15s;
+    }
+
+    .column-title:hover {
+        background: rgba(9, 30, 66, 0.08);
+    }
+
+    .column-title-input {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #172b4d;
+        letter-spacing: 0.2px;
+        border: 2px solid #0c66e4;
+        border-radius: 4px;
+        padding: 2px 6px;
+        outline: none;
+        width: 100%;
+        font-family: inherit;
+    }
+
+    .column-menu-wrapper {
+        position: relative;
     }
 
     .column-menu-btn {
@@ -40,8 +103,93 @@
     .column-menu-btn:hover {
         background: rgba(9, 30, 66, 0.08);
     }
+
+    .column-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        min-width: 160px;
+        z-index: 100;
+        padding: 4px 0;
+        margin-top: 4px;
+    }
+
+    .dropdown-item {
+        width: 100%;
+        background: none;
+        border: none;
+        color: #172b4d;
+        cursor: pointer;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.1s;
+        text-align: left;
+    }
+
+    .dropdown-item:hover {
+        background: #f1f2f4;
+    }
+
+    .dropdown-item-danger {
+        color: #ae1e09;
+    }
+
+    .dropdown-item-danger:hover {
+        background: #ffeceb;
+    }
 </style>
 
 @code {
     [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> Renamed { get; set; }
+    [Parameter] public EventCallback Deleted { get; set; }
+
+    private bool isMenuOpen;
+    private bool isEditing;
+    private string editName = string.Empty;
+
+    private void ToggleMenu()
+    {
+        isMenuOpen = !isMenuOpen;
+    }
+
+    private void StartRename()
+    {
+        isMenuOpen = false;
+        editName = Title;
+        isEditing = true;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (isEditing && !string.IsNullOrWhiteSpace(editName) && editName != Title)
+        {
+            await Renamed.InvokeAsync(editName);
+        }
+        isEditing = false;
+    }
+
+    private async Task HandleEditKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SaveEdit();
+        }
+        else if (e.Key == "Escape")
+        {
+            isEditing = false;
+        }
+    }
+
+    private async Task OnDelete()
+    {
+        isMenuOpen = false;
+        await Deleted.InvokeAsync();
+    }
 }
