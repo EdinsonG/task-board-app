@@ -37,6 +37,186 @@ public class KanbanController : ControllerBase
         }
     }
 
+    [HttpGet("task/{taskId}/subtasks")]
+    public async Task<ActionResult<List<Subtask>>> GetSubtasks(int taskId)
+    {
+        try
+        {
+            var subtasks = await _db.Subtasks
+                .Where(s => s.TaskId == taskId)
+                .OrderBy(s => s.Order)
+                .ToListAsync();
+
+            return Ok(subtasks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener subtareas de la tarea {TaskId}", taskId);
+            return StatusCode(500, new { message = "Error al obtener subtareas" });
+        }
+    }
+
+    [HttpPost("task/{taskId}/subtask")]
+    public async Task<ActionResult<Subtask>> CreateSubtask(int taskId, [FromBody] CreateSubtaskDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var taskExists = await _db.Tasks.AnyAsync(t => t.Id == taskId);
+            if (!taskExists)
+                return NotFound(new { message = $"Tarea con ID {taskId} no encontrada" });
+
+            var maxOrder = await _db.Subtasks.Where(s => s.TaskId == taskId).MaxAsync(s => (int?)s.Order) ?? 0;
+
+            var subtask = new Subtask
+            {
+                TaskId = taskId,
+                Title = dto.Title,
+                IsCompleted = false,
+                Order = maxOrder + 1
+            };
+
+            _db.Subtasks.Add(subtask);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Subtarea creada: {SubtaskId} - {Title} en tarea {TaskId}", subtask.Id, subtask.Title, taskId);
+            return Ok(subtask);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear subtarea en tarea {TaskId}", taskId);
+            return StatusCode(500, new { message = "Error al crear subtarea" });
+        }
+    }
+
+    [HttpPut("subtask/{id}")]
+    public async Task<IActionResult> UpdateSubtask(int id, [FromBody] UpdateSubtaskDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var subtask = await _db.Subtasks.FindAsync(id);
+            if (subtask == null)
+                return NotFound(new { message = $"Subtarea con ID {id} no encontrada" });
+
+            if (dto.Title != null)
+                subtask.Title = dto.Title;
+
+            if (dto.IsCompleted.HasValue)
+                subtask.IsCompleted = dto.IsCompleted.Value;
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Subtarea actualizada: {SubtaskId}", id);
+            return Ok(subtask);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar subtarea {SubtaskId}", id);
+            return StatusCode(500, new { message = "Error al actualizar subtarea" });
+        }
+    }
+
+    [HttpDelete("subtask/{id}")]
+    public async Task<IActionResult> DeleteSubtask(int id)
+    {
+        try
+        {
+            var subtask = await _db.Subtasks.FindAsync(id);
+            if (subtask == null)
+                return NotFound(new { message = $"Subtarea con ID {id} no encontrada" });
+
+            _db.Subtasks.Remove(subtask);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Subtarea eliminada: {SubtaskId}", id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar subtarea {SubtaskId}", id);
+            return StatusCode(500, new { message = "Error al eliminar subtarea" });
+        }
+    }
+
+    [HttpGet("task/{taskId}/comments")]
+    public async Task<ActionResult<List<Comment>>> GetComments(int taskId)
+    {
+        try
+        {
+            var comments = await _db.Comments
+                .Where(c => c.TaskId == taskId)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            return Ok(comments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener comentarios de la tarea {TaskId}", taskId);
+            return StatusCode(500, new { message = "Error al obtener comentarios" });
+        }
+    }
+
+    [HttpPost("task/{taskId}/comment")]
+    public async Task<ActionResult<Comment>> CreateComment(int taskId, [FromBody] CreateCommentDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var taskExists = await _db.Tasks.AnyAsync(t => t.Id == taskId);
+            if (!taskExists)
+                return NotFound(new { message = $"Tarea con ID {taskId} no encontrada" });
+
+            var comment = new Comment
+            {
+                TaskId = taskId,
+                Author = dto.Author,
+                Content = dto.Content,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.Comments.Add(comment);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Comentario creado: {CommentId} en tarea {TaskId}", comment.Id, taskId);
+            return Ok(comment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear comentario en tarea {TaskId}", taskId);
+            return StatusCode(500, new { message = "Error al crear comentario" });
+        }
+    }
+
+    [HttpDelete("comment/{id}")]
+    public async Task<IActionResult> DeleteComment(int id)
+    {
+        try
+        {
+            var comment = await _db.Comments.FindAsync(id);
+            if (comment == null)
+                return NotFound(new { message = $"Comentario con ID {id} no encontrado" });
+
+            _db.Comments.Remove(comment);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Comentario eliminado: {CommentId}", id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar comentario {CommentId}", id);
+            return StatusCode(500, new { message = "Error al eliminar comentario" });
+        }
+    }
+
     [HttpPost("task")]
     public async Task<ActionResult<TaskItem>> CreateTask([FromBody] TaskItem task)
     {

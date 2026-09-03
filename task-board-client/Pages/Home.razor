@@ -11,12 +11,17 @@
     @if (errorMessage != null)
     {
         <div class="toast toast-error">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <span>@errorMessage</span>
+            <div class="toast-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <div class="toast-body">
+                <div class="toast-title">Error</div>
+                <div class="toast-message">@errorMessage</div>
+            </div>
             <button class="toast-dismiss" @onclick="() => errorMessage = null">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -29,14 +34,31 @@
     @if (successMessage != null)
     {
         <div class="toast toast-success">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            <span>@successMessage</span>
+            <div class="toast-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <div class="toast-body">
+                <div class="toast-title">Éxito</div>
+                <div class="toast-message">
+                    @successMessage
+                    @if (lastAction != null)
+                    {
+                        <span class="toast-hint"> — Presiona <kbd>Ctrl+Z</kbd> para deshacer</span>
+                    }
+                </div>
+            </div>
             @if (lastAction != null)
             {
-                <button class="toast-undo" @onclick="Undo">Deshacer</button>
+                <button class="toast-undo" @onclick="Undo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                    Deshacer
+                </button>
             }
             <button class="toast-dismiss" @onclick="() => successMessage = null">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -104,7 +126,86 @@ else if (columns != null)
                 </div>
             }
         </div>
+        <div class="filter-toggle @(showFilters ? "active" : "")" @onclick="() => showFilters = !showFilters">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            @if (HasActiveFilters)
+            {
+                <span class="filter-badge"></span>
+            }
+        </div>
+        <div class="theme-toggle" @onclick="ToggleTheme">
+            @if (isDarkMode)
+            {
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            }
+            else
+            {
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            }
+        </div>
     </div>
+
+    @if (showFilters)
+    {
+        <div class="filters-panel">
+            <div class="filter-group">
+                <label class="filter-label">Etiqueta</label>
+                <div class="filter-chips">
+                    @foreach (var label in allLabels)
+                    {
+                        <button class="filter-chip @(filterLabels.Contains(label) ? "active" : "")"
+                                @onclick="() => ToggleFilterLabel(label)">
+                            <span class="label-dot-sm" style="background: @GetLabelColor(label)"></span>
+                            @label
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Fecha</label>
+                <div class="filter-chips">
+                    <button class="filter-chip @(filterDate == "overdue" ? "active" : "")" @onclick='() => SetFilterDate("overdue")'>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        Vencida
+                    </button>
+                    <button class="filter-chip @(filterDate == "today" ? "active" : "")" @onclick='() => SetFilterDate("today")'>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Vence hoy
+                    </button>
+                    <button class="filter-chip @(filterDate == "upcoming" ? "active" : "")" @onclick='() => SetFilterDate("upcoming")'>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Próximamente
+                    </button>
+                    <button class="filter-chip @(filterDate == "none" ? "active" : "")" @onclick='() => SetFilterDate("none")'>
+                        Sin fecha
+                    </button>
+                </div>
+            </div>
+            @if (HasActiveFilters)
+            {
+                <button class="filter-clear-all" @onclick="ClearFilters">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Limpiar filtros
+                </button>
+            }
+        </div>
+    }
 
     <div class="kanban-board">
         @foreach (var column in columns)
@@ -200,34 +301,68 @@ else if (columns != null)
         display: flex;
         flex-direction: column;
         gap: 8px;
-        max-width: 380px;
+        max-width: 400px;
     }
 
     .toast {
-        border-radius: 8px;
-        padding: 10px 14px;
+        border-radius: 10px;
+        padding: 12px 14px;
         display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.85rem;
+        align-items: flex-start;
+        gap: 10px;
         animation: slideInRight 0.25s ease-out;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    }
+
+    .toast-icon {
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    .toast-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .toast-title {
+        font-weight: 700;
+        font-size: 0.82rem;
+        margin-bottom: 2px;
+    }
+
+    .toast-message {
+        font-size: 0.78rem;
+        line-height: 1.4;
+        opacity: 0.85;
+    }
+
+    .toast-hint {
+        font-size: 0.73rem;
+        opacity: 0.7;
+    }
+
+    .toast-hint kbd {
+        background: rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.15);
+        border-radius: 3px;
+        padding: 0 4px;
+        font-family: monospace;
+        font-size: 0.7rem;
     }
 
     .toast-error {
-        background: #ffeceb;
+        background: var(--bg-toast-error, #ffeceb);
         border: 1px solid #ff5630;
         color: #ae1e09;
     }
 
     .toast-success {
-        background: #e3fcef;
+        background: var(--bg-toast-success, #e3fcef);
         border: 1px solid #36b37e;
         color: #006644;
     }
 
     .toast-dismiss {
-        margin-left: auto;
         background: none;
         border: none;
         cursor: pointer;
@@ -235,27 +370,30 @@ else if (columns != null)
         border-radius: 4px;
         display: flex;
         align-items: center;
+        flex-shrink: 0;
+        opacity: 0.5;
     }
 
     .toast-dismiss:hover {
+        opacity: 1;
         background: rgba(0, 0, 0, 0.06);
     }
 
-    .toast-success .toast-dismiss {
-        color: #006644;
-    }
-
     .toast-undo {
-        margin-left: 8px;
-        background: rgba(0, 102, 68, 0.1);
+        background: rgba(0, 102, 68, 0.12);
         border: 1px solid rgba(0, 102, 68, 0.3);
         color: #006644;
-        padding: 2px 10px;
-        border-radius: 4px;
+        padding: 4px 12px;
+        border-radius: 6px;
         font-size: 0.78rem;
         font-weight: 600;
         cursor: pointer;
         transition: background 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        margin-top: 4px;
     }
 
     .toast-undo:hover {
@@ -429,6 +567,131 @@ else if (columns != null)
         text-align: center;
     }
 
+    .theme-toggle {
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .theme-toggle:hover {
+        background: rgba(255,255,255,0.15);
+        color: white;
+    }
+
+    .filter-toggle {
+        position: relative;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .filter-toggle:hover, .filter-toggle.active {
+        background: rgba(255,255,255,0.15);
+        color: white;
+    }
+
+    .filter-badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 7px;
+        height: 7px;
+        background: #ff991f;
+        border-radius: 50%;
+        border: 1.5px solid #0c66e4;
+    }
+
+    .filters-panel {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        flex-wrap: wrap;
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-label {
+        color: rgba(255,255,255,0.8);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .filter-chip {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.8);
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .filter-chip:hover {
+        background: rgba(255,255,255,0.18);
+    }
+
+    .filter-chip.active {
+        background: rgba(255,255,255,0.25);
+        border-color: rgba(255,255,255,0.5);
+        color: white;
+        font-weight: 600;
+    }
+
+    .label-dot-sm {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .filter-clear-all {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: none;
+        background: rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.8);
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        align-self: flex-end;
+    }
+
+    .filter-clear-all:hover {
+        background: rgba(255,255,255,0.22);
+    }
+
     .kanban-board {
         display: flex;
         gap: 14px;
@@ -437,12 +700,12 @@ else if (columns != null)
     }
 
     .kanban-column {
-        background: #f1f2f4;
+        background: var(--bg-column);
         border-radius: 12px;
         width: 272px;
         min-width: 272px;
         padding: 8px;
-        box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
+        box-shadow: var(--shadow-card);
     }
 
     .task-list {
@@ -587,13 +850,13 @@ else if (columns != null)
     private string confirmConfirmText = "Eliminar";
     private ConfirmModal.ConfirmType confirmType = ConfirmModal.ConfirmType.Danger;
     private Func<Task>? confirmAction;
+    private bool isDarkMode;
+    private bool showFilters;
+    private HashSet<string> filterLabels = new();
+    private string? filterDate;
+    private readonly string[] allLabels = { "Alta", "Media", "Baja", "Bug", "Feature", "Mejora", "Urgente", "Diseño" };
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadBoard();
-        var dotNetRef = DotNetObjectReference.Create(this);
-        await JSRuntime.InvokeVoidAsync("keyboardShortcuts.init", dotNetRef);
-    }
+    private bool HasActiveFilters => filterLabels.Count > 0 || filterDate != null;
 
     [JSInvokable]
     public async Task OnKeyDown(string key, bool ctrlKey, bool metaKey, bool isInput)
@@ -603,6 +866,15 @@ else if (columns != null)
             if (editModalVisible)
             {
                 CloseEditModal();
+                StateHasChanged();
+            }
+            else if (confirmVisible)
+            {
+                CancelConfirm();
+            }
+            else if (showFilters)
+            {
+                showFilters = false;
                 StateHasChanged();
             }
             return;
@@ -671,14 +943,35 @@ else if (columns != null)
 
     private List<TaskItem> GetFilteredTasks(ColumnItem column)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-            return column.Tasks;
+        var tasks = column.Tasks.AsEnumerable();
 
-        var term = searchTerm.ToLowerInvariant();
-        return column.Tasks
-            .Where(t => t.Title.ToLowerInvariant().Contains(term)
-                     || t.Description.ToLowerInvariant().Contains(term))
-            .ToList();
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.ToLowerInvariant();
+            tasks = tasks.Where(t => t.Title.ToLowerInvariant().Contains(term)
+                                  || t.Description.ToLowerInvariant().Contains(term));
+        }
+
+        if (filterLabels.Count > 0)
+        {
+            tasks = tasks.Where(t => !string.IsNullOrWhiteSpace(t.Labels)
+                && t.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Any(l => filterLabels.Contains(l.Trim())));
+        }
+
+        if (filterDate != null)
+        {
+            tasks = filterDate switch
+            {
+                "overdue" => tasks.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date < DateTime.Today),
+                "today" => tasks.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == DateTime.Today),
+                "upcoming" => tasks.Where(t => t.DueDate.HasValue && t.DueDate.Value.Date > DateTime.Today),
+                "none" => tasks.Where(t => !t.DueDate.HasValue),
+                _ => tasks
+            };
+        }
+
+        return tasks.ToList();
     }
 
     private void ToggleAddCard(int columnId)
@@ -1113,6 +1406,62 @@ else if (columns != null)
         confirmVisible = false;
         confirmAction = null;
         StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var savedTheme = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "theme");
+        isDarkMode = savedTheme == "dark";
+        if (isDarkMode)
+            await JSRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", "dark");
+
+        await LoadBoard();
+        var dotNetRef = DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync("keyboardShortcuts.init", dotNetRef);
+    }
+
+    private async Task ToggleTheme()
+    {
+        isDarkMode = !isDarkMode;
+        var theme = isDarkMode ? "dark" : "light";
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "theme", theme);
+        await JSRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", isDarkMode ? "dark" : "");
+        StateHasChanged();
+    }
+
+    private void ToggleFilterLabel(string label)
+    {
+        if (filterLabels.Contains(label))
+            filterLabels.Remove(label);
+        else
+            filterLabels.Add(label);
+    }
+
+    private void SetFilterDate(string? dateFilter)
+    {
+        filterDate = filterDate == dateFilter ? null : dateFilter;
+    }
+
+    private void ClearFilters()
+    {
+        filterLabels.Clear();
+        filterDate = null;
+    }
+
+    private string GetLabelColor(string label)
+    {
+        return label.Trim() switch
+        {
+            "Alta" => "#ff5630",
+            "Media" => "#ff991f",
+            "Baja" => "#36b37e",
+            "Bug" => "#ff5630",
+            "Feature" => "#579dff",
+            "Mejora" => "#9f8fef",
+            "Urgente" => "#e8916d",
+            "Diseño" => "#f472b6",
+            _ => "#626f86"
+        };
     }
 
     private void ToggleShortcutsHelp()

@@ -9,6 +9,8 @@ public class AppDbContext : DbContext
 
     public DbSet<ColumnItem> Columns => Set<ColumnItem>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<Subtask> Subtasks => Set<Subtask>();
+    public DbSet<Comment> Comments => Set<Comment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,6 +20,18 @@ public class AppDbContext : DbContext
             .HasMany(c => c.Tasks)
             .WithOne()
             .HasForeignKey(t => t.ColumnId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TaskItem>()
+            .HasMany<Subtask>()
+            .WithOne()
+            .HasForeignKey(s => s.TaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TaskItem>()
+            .HasMany<Comment>()
+            .WithOne()
+            .HasForeignKey(c => c.TaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ColumnItem>().HasData(
