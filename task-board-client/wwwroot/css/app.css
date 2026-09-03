@@ -1,52 +1,3 @@
-:root {
-    --bg-body: #0c66e4;
-    --bg-column: #f1f2f4;
-    --bg-card: white;
-    --bg-card-hover: #f7f8f9;
-    --bg-modal: white;
-    --bg-input: white;
-    --bg-input-focus: #f7f8f9;
-    --bg-toast-error: #ffeceb;
-    --bg-toast-success: #e3fcef;
-    --bg-overlay: rgba(0, 0, 0, 0.5);
-    --text-primary: #172b4d;
-    --text-secondary: #626f86;
-    --text-muted: #8993a4;
-    --text-on-primary: white;
-    --text-link: #0071c1;
-    --border-default: #d0d4dc;
-    --border-focus: #0c66e4;
-    --shadow-card: 0 1px 1px rgba(9, 30, 66, 0.25);
-    --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.25);
-    --scrollbar-track: rgba(255,255,255,0.1);
-    --scrollbar-thumb: rgba(255,255,255,0.3);
-    --scrollbar-thumb-hover: rgba(255,255,255,0.5);
-}
-
-[data-theme="dark"] {
-    --bg-body: #1d2125;
-    --bg-column: #282e33;
-    --bg-card: #33383e;
-    --bg-card-hover: #3b424a;
-    --bg-modal: #282e33;
-    --bg-input: #33383e;
-    --bg-input-focus: #3b424a;
-    --bg-toast-error: #3d1f1f;
-    --bg-toast-success: #1a3326;
-    --bg-overlay: rgba(0, 0, 0, 0.7);
-    --text-primary: #e2e4e9;
-    --text-secondary: #9fadbc;
-    --text-muted: #6b7a8d;
-    --text-on-primary: white;
-    --border-default: #444c56;
-    --border-focus: #579dff;
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --scrollbar-track: rgba(255,255,255,0.05);
-    --scrollbar-thumb: rgba(255,255,255,0.15);
-    --scrollbar-thumb-hover: rgba(255,255,255,0.25);
-}
-
 * {
     margin: 0;
     padding: 0;
@@ -57,8 +8,6 @@ html, body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     height: 100%;
     overflow: hidden;
-    background: var(--bg-body);
-    transition: background 0.2s;
 }
 
 #app {
@@ -66,7 +15,7 @@ html, body {
 }
 
 a, .btn-link {
-    color: var(--text-link);
+    color: #0071c1;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
