@@ -12,6 +12,9 @@ html, body {
 
 #app {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 a, .btn-link {

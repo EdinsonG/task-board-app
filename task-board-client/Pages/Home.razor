@@ -79,6 +79,7 @@
 }
 else if (columns != null)
 {
+<div class="board-page">
     <div class="board-title-bar">
         <span class="board-section-title">Board</span>
         @if (isLoading)
@@ -256,6 +257,7 @@ else if (columns != null)
                        ToggleVisibility="() => showAddColumn = !showAddColumn"
                        SubmitColumn="CreateColumn" />
     </div>
+</div>
 }
 
 <TaskDetailModal IsVisible="editModalVisible"
@@ -274,10 +276,12 @@ else if (columns != null)
               OnCancel="CancelConfirm" />
 
 <style>
-    :host {
+    .board-page {
         display: flex;
         flex-direction: column;
-        height: 100vh;
+        flex: 1;
+        min-height: 0;
+        padding: 16px;
         overflow: hidden;
     }
 
@@ -679,6 +683,7 @@ else if (columns != null)
         padding-bottom: 16px;
         flex: 1;
         min-height: 0;
+        min-width: 0;
         overflow-x: auto;
     }
 
@@ -687,11 +692,11 @@ else if (columns != null)
         border-radius: 12px;
         width: 272px;
         min-width: 272px;
+        max-height: 100%;
         padding: 8px;
         box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
         display: flex;
         flex-direction: column;
-        max-height: 100%;
     }
 
     .task-list {
