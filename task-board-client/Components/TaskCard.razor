@@ -56,14 +56,6 @@
         </svg>
     </button>
 
-    <button class="card-action-btn card-archive-btn" @onclick="OnArchive" data-tooltip="Archivar">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="21 8 21 21 3 21 3 8"></polyline>
-            <rect x="1" y="3" width="22" height="5"></rect>
-            <line x1="10" y1="12" x2="14" y2="12"></line>
-        </svg>
-    </button>
-
     <button class="card-action-btn card-delete-btn" @onclick="OnDelete" data-tooltip="Eliminar">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -219,10 +211,6 @@
     }
 
     .card-edit-btn {
-        right: 52px;
-    }
-
-    .card-archive-btn {
         right: 28px;
     }
 
@@ -243,12 +231,6 @@
         background: #ffeceb;
         color: #ae1e09;
         border-color: #ff5630;
-    }
-
-    .card-archive-btn:hover {
-        background: #e3fcef;
-        color: #006644;
-        border-color: #36b37e;
     }
 
     @@media (max-width: 640px) {
@@ -280,7 +262,6 @@
     [Parameter] public EventCallback<int> DragStarted { get; set; }
     [Parameter] public EventCallback<int> DeleteClicked { get; set; }
     [Parameter] public EventCallback<int> EditClicked { get; set; }
-    [Parameter] public EventCallback<int> ArchiveClicked { get; set; }
 
     private void OnDragStart()
     {
@@ -295,11 +276,6 @@
     private void OnDelete()
     {
         DeleteClicked.InvokeAsync(Task.Id);
-    }
-
-    private void OnArchive()
-    {
-        ArchiveClicked.InvokeAsync(Task.Id);
     }
 
     private string GetLabelColor(string label)

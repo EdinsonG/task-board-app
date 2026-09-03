@@ -123,7 +123,7 @@ a, .btn-link {
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    z-index: 5000;
+    z-index: 99999;
     transition: opacity 0.1s;
 }
 
