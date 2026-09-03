@@ -88,7 +88,7 @@ else if (columns != null)
                 Guardando...
             </span>
         }
-        <div class="shortcuts-help" @onclick="ToggleShortcutsHelp" title="Atajos de teclado">
+        <div class="shortcuts-help" @onclick="ToggleShortcutsHelp" data-tooltip="Atajos de teclado">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
                 <path d="M6 8h.001"></path><path d="M10 8h.001"></path><path d="M14 8h.001"></path>
@@ -106,7 +106,7 @@ else if (columns != null)
                 </div>
             }
         </div>
-        <div class="filter-toggle @(showFilters ? "active" : "")" @onclick="() => showFilters = !showFilters" title="Filtros y búsqueda">
+        <div class="filter-toggle @(showFilters ? "active" : "")" @onclick="() => showFilters = !showFilters" data-tooltip="Filtros y búsqueda">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
@@ -134,7 +134,7 @@ else if (columns != null)
                            placeholder="Buscar tareas..." />
                     @if (!string.IsNullOrWhiteSpace(searchTerm))
                     {
-                        <button class="search-clear" @onclick="() => searchTerm = string.Empty" title="Limpiar búsqueda">
+                        <button class="search-clear" @onclick="() => searchTerm = string.Empty" data-tooltip="Limpiar búsqueda">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -178,7 +178,7 @@ else if (columns != null)
             </div>
             @if (HasActiveFilters)
             {
-                <button class="filter-clear-all" @onclick="ClearFilters" title="Limpiar todos los filtros">
+                <button class="filter-clear-all" @onclick="ClearFilters" data-tooltip="Limpiar todos los filtros">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
@@ -242,7 +242,7 @@ else if (columns != null)
                     </div>
                 </div>
 
-                <button class="add-card-btn-inline" @onclick="() => OpenCreateModal(column.Id)" title="Agregar nueva tarjeta a esta columna">
+                <button class="add-card-btn-inline" @onclick="() => OpenCreateModal(column.Id)" data-tooltip="Agregar nueva tarjeta">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -274,6 +274,13 @@ else if (columns != null)
               OnCancel="CancelConfirm" />
 
 <style>
+    :host {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
     .toast-container {
         position: fixed;
         top: 16px;
@@ -668,8 +675,11 @@ else if (columns != null)
     .kanban-board {
         display: flex;
         gap: 14px;
-        align-items: flex-start;
+        align-items: stretch;
         padding-bottom: 16px;
+        flex: 1;
+        min-height: 0;
+        overflow-x: auto;
     }
 
     .kanban-column {
@@ -677,11 +687,11 @@ else if (columns != null)
         border-radius: 12px;
         width: 272px;
         min-width: 272px;
-        max-height: calc(100vh - 100px);
         padding: 8px;
         box-shadow: 0 1px 1px rgba(9, 30, 66, 0.25);
         display: flex;
         flex-direction: column;
+        max-height: 100%;
     }
 
     .task-list {
