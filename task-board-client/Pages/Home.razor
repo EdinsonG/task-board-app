@@ -3,6 +3,7 @@
 @inject KanbanService Kanban
 @using task_board_client.Models
 @using task_board_client.Services
+@using task_board_client.Components
 @implements IDisposable
 
 <PageTitle>Tablero Kanban</PageTitle>
@@ -81,6 +82,12 @@ else if (columns != null)
 {
 <div class="board-page">
     <div class="board-title-bar">
+        <HamburgerMenu Columns="columns"
+                       ViewChanged="OnViewChanged"
+                       OnNewBoardRequested="OnNewBoard"
+                       OnSettingsRequested="OnSettings"
+                       OnExportRequested="OnExport"
+                       OnManageLabelsRequested="OnManageLabels" />
         <span class="board-section-title">Board</span>
         @if (isLoading)
         {
@@ -820,6 +827,8 @@ else if (columns != null)
     private HashSet<string> filterLabels = new();
     private string? filterDate;
     private readonly string[] allLabels = { "Alta", "Media", "Baja", "Bug", "Feature", "Mejora", "Urgente", "Diseño" };
+    private string currentView = "board";
+    private bool labelModalVisible;
 
     private bool HasActiveFilters => filterLabels.Count > 0 || filterDate != null;
 
@@ -1470,5 +1479,55 @@ else if (columns != null)
     {
         Delete,
         Move
+    }
+
+    private async Task OnViewChanged(string view)
+    {
+        currentView = view;
+        StateHasChanged();
+    }
+
+    private async Task OnNewBoard()
+    {
+        showAddColumn = true;
+        StateHasChanged();
+    }
+
+    private async Task OnSettings()
+    {
+    }
+
+    private async Task OnExport()
+    {
+        if (columns == null) return;
+
+        var exportData = new
+        {
+            board = "Task Board",
+            exportedAt = DateTime.Now,
+            columns = columns.Select(c => new
+            {
+                name = c.Name,
+                order = c.Order,
+                tasks = c.Tasks.Select(t => new
+                {
+                    title = t.Title,
+                    description = t.Description,
+                    labels = t.Labels,
+                    dueDate = t.DueDate?.ToString("yyyy-MM-dd"),
+                    order = t.Order
+                })
+            })
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
+        ShowSuccess("Tablero copiado al portapapeles como JSON");
+    }
+
+    private void OnManageLabels()
+    {
+        labelModalVisible = true;
+        StateHasChanged();
     }
 }
