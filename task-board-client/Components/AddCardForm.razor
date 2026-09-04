@@ -15,6 +15,7 @@
             <textarea placeholder="Enter a title for this card..."
                       @bind="Title"
                       @bind:event="oninput"
+                      @onkeydown:stopPropagation
                       rows="2"></textarea>
             <div class="add-card-actions">
                 <button class="add-card-submit" @onclick="OnSubmit">Add card</button>

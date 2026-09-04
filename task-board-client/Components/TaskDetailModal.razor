@@ -37,6 +37,7 @@
                            class="field-input @(showValidation && string.IsNullOrWhiteSpace(Title) ? "field-error" : "")"
                            @bind="Title"
                            @bind:event="oninput"
+                           @onkeydown:stopPropagation
                            placeholder="Título de la tarea" />
                     @if (showValidation && string.IsNullOrWhiteSpace(Title))
                     {
@@ -57,6 +58,7 @@
                     <textarea class="field-textarea @(showValidation && string.IsNullOrWhiteSpace(Description) ? "field-error" : "")"
                               @bind="Description"
                               @bind:event="oninput"
+                              @onkeydown:stopPropagation
                               placeholder="Agrega una descripción más detallada..."
                               rows="5"></textarea>
                     @if (showValidation && string.IsNullOrWhiteSpace(Description))
@@ -106,6 +108,7 @@
                                class="field-input date-input @(showValidation && !DueDate.HasValue ? "field-error" : "")"
                                @bind="DueDate"
                                @bind:format="yyyy-MM-dd"
+                               @onkeydown:stopPropagation
                                min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         @if (DueDate.HasValue)
                         {

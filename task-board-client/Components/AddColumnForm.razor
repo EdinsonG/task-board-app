@@ -17,6 +17,7 @@
                    @bind="Name"
                    @bind:event="oninput"
                    @onkeydown="HandleKeyDown"
+                   @onkeydown:stopPropagation
                    placeholder="Introduce un nombre para la lista..."
                    autofocus />
             <div class="add-column-actions">

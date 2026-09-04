@@ -80,7 +80,7 @@
 }
 else if (columns != null)
 {
-<div class="board-page">
+<div class="board-page" @onkeydown="OnKeyDown">
     <div class="board-title-bar">
         <HamburgerMenu Columns="columns"
                        ViewChanged="OnViewChanged"
@@ -139,6 +139,7 @@ else if (columns != null)
                            class="search-input"
                            @bind="searchTerm"
                            @bind:event="oninput"
+                           @onkeydown:stopPropagation
                            placeholder="Buscar tareas..." />
                     @if (!string.IsNullOrWhiteSpace(searchTerm))
                     {
@@ -833,9 +834,9 @@ else if (columns != null)
     private bool HasActiveFilters => filterLabels.Count > 0 || filterDate != null;
 
     [JSInvokable]
-    public async Task OnKeyDown(string key, bool ctrlKey, bool metaKey, bool isInput)
+    public async Task OnKeyDown(KeyboardEventArgs e)
     {
-        if (key == "Escape")
+        if (e.Key == "Escape")
         {
             if (editModalVisible)
             {
@@ -854,22 +855,20 @@ else if (columns != null)
             return;
         }
 
-        if (isInput) return;
-
-        if ((ctrlKey || metaKey) && key == "z")
+        if ((e.CtrlKey || e.MetaKey) && e.Key == "z")
         {
             await Undo();
             return;
         }
 
-        if (key == "n" || key == "N")
+        if (e.Key == "n" || e.Key == "N")
         {
             showAddColumn = true;
             StateHasChanged();
             return;
         }
 
-        if ((key == "e" || key == "E") && columns != null)
+        if ((e.Key == "e" || e.Key == "E") && columns != null)
         {
             var firstTask = columns.SelectMany(c => c.Tasks).FirstOrDefault();
             if (firstTask != null)
@@ -1336,8 +1335,6 @@ else if (columns != null)
     protected override async Task OnInitializedAsync()
     {
         await LoadBoard();
-        var dotNetRef = DotNetObjectReference.Create(this);
-        await JSRuntime.InvokeVoidAsync("keyboardShortcuts.init", dotNetRef);
     }
 
     private void ToggleFilterLabel(string label)

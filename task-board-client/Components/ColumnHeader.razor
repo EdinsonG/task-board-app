@@ -8,6 +8,7 @@
                @bind="editName"
                @bind:event="oninput"
                @onkeydown="HandleEditKeyDown"
+               @onkeydown:stopPropagation
                @onblur="SaveEdit"
                autofocus />
     }
