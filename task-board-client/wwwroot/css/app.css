@@ -14,7 +14,6 @@ html, body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 a, .btn-link {
@@ -143,6 +142,14 @@ a, .btn-link {
     top: calc(100% + 6px);
     left: 50%;
     transform: translateX(-50%);
+}
+
+[data-tooltip-pos="left"]::after {
+    bottom: auto;
+    left: auto;
+    right: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 @media (max-width: 640px) {
