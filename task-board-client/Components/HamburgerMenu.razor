@@ -57,17 +57,6 @@
         </div>
 
         <div class="hamburger-section">
-            <div class="hamburger-section-title">Gestión</div>
-            <button class="hamburger-item" @onclick="OnManageLabels">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                </svg>
-                Administrar etiquetas
-            </button>
-        </div>
-
-        <div class="hamburger-section">
             <div class="hamburger-section-title">Utilidades</div>
             <div class="hamburger-item-group">
                 <span class="hamburger-item-label">
@@ -109,6 +98,35 @@
                         Calendario
                     </button>
                 </div>
+            </div>
+            <button class="hamburger-item" @onclick="ToggleFilters">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                </svg>
+                Filtros y búsqueda
+                @if (HasActiveFilters)
+                {
+                    <span class="hamburger-badge"></span>
+                }
+            </button>
+            <button class="hamburger-item" @onclick="OnManageLabels">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+                Administrar etiquetas
+            </button>
+        </div>
+
+        <div class="hamburger-divider"></div>
+
+        <div class="hamburger-section">
+            <div class="hamburger-shortcuts">
+                <div class="hamburger-shortcuts-title">Atajos de teclado</div>
+                <div class="hamburger-shortcut-row"><kbd>N</kbd> Nueva columna</div>
+                <div class="hamburger-shortcut-row"><kbd>E</kbd> Editar primera tarea</div>
+                <div class="hamburger-shortcut-row"><kbd>Ctrl+Z</kbd> Deshacer</div>
+                <div class="hamburger-shortcut-row"><kbd>Esc</kbd> Cerrar modal</div>
             </div>
         </div>
 
@@ -323,6 +341,48 @@
         background: #dfe1e6;
         margin: 4px 12px;
     }
+
+    .hamburger-badge {
+        width: 8px;
+        height: 8px;
+        background: #ff991f;
+        border-radius: 50%;
+        margin-left: auto;
+    }
+
+    .hamburger-shortcuts {
+        padding: 4px 10px;
+    }
+
+    .hamburger-shortcuts-title {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #626f86;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .hamburger-shortcut-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 0.8rem;
+        color: #44546f;
+    }
+
+    .hamburger-shortcut-row kbd {
+        background: #e4e7eb;
+        border: 1px solid #d0d4dc;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: monospace;
+        font-size: 0.7rem;
+        color: #172b4d;
+        min-width: 24px;
+        text-align: center;
+    }
 </style>
 
 @code {
@@ -332,6 +392,9 @@
     [Parameter] public EventCallback OnSettingsRequested { get; set; }
     [Parameter] public EventCallback OnExportRequested { get; set; }
     [Parameter] public EventCallback OnManageLabelsRequested { get; set; }
+    [Parameter] public bool ShowFilters { get; set; }
+    [Parameter] public bool HasActiveFilters { get; set; }
+    [Parameter] public EventCallback OnToggleFilters { get; set; }
 
     private bool isOpen;
     private string currentView = "board";
@@ -374,6 +437,11 @@
     {
         CloseMenu();
         await OnManageLabelsRequested.InvokeAsync();
+    }
+
+    private async Task ToggleFilters()
+    {
+        await OnToggleFilters.InvokeAsync();
     }
 
     private void OnLogout()

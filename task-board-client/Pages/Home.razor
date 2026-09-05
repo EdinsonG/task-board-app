@@ -87,7 +87,10 @@ else if (columns != null)
                        OnNewBoardRequested="OnNewBoard"
                        OnSettingsRequested="OnSettings"
                        OnExportRequested="OnExport"
-                       OnManageLabelsRequested="OnManageLabels" />
+                       OnManageLabelsRequested="OnManageLabels"
+                       ShowFilters="showFilters"
+                       HasActiveFilters="HasActiveFilters"
+                       OnToggleFilters="ToggleFilters" />
         <span class="board-section-title">Board</span>
         @if (isLoading)
         {
@@ -96,33 +99,6 @@ else if (columns != null)
                 Guardando...
             </span>
         }
-        <div class="shortcuts-help" @onclick="ToggleShortcutsHelp" data-tooltip="Atajos de teclado">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-                <path d="M6 8h.001"></path><path d="M10 8h.001"></path><path d="M14 8h.001"></path>
-                <path d="M8 12h.001"></path><path d="M12 12h.001"></path><path d="M16 12h.001"></path>
-                <path d="M7 16h10"></path>
-            </svg>
-            @if (showShortcuts)
-            {
-                <div class="shortcuts-tooltip">
-                    <div class="shortcuts-title">Atajos de teclado</div>
-                    <div class="shortcut-row"><kbd>N</kbd> Nueva columna</div>
-                    <div class="shortcut-row"><kbd>E</kbd> Editar primera tarea</div>
-                    <div class="shortcut-row"><kbd>Ctrl+Z</kbd> Deshacer</div>
-                    <div class="shortcut-row"><kbd>Esc</kbd> Cerrar modal</div>
-                </div>
-            }
-        </div>
-        <div class="filter-toggle @(showFilters ? "active" : "")" @onclick="() => showFilters = !showFilters" data-tooltip="Filtros y búsqueda">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-            @if (HasActiveFilters)
-            {
-                <span class="filter-badge"></span>
-            }
-        </div>
     </div>
 
     @if (showFilters)
@@ -511,92 +487,6 @@ else if (columns != null)
         color: #172b4d;
     }
 
-    .shortcuts-help {
-        position: relative;
-        margin-left: auto;
-        color: rgba(255,255,255,0.7);
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        transition: background 0.15s, color 0.15s;
-    }
-
-    .shortcuts-help:hover {
-        background: rgba(255,255,255,0.15);
-        color: white;
-    }
-
-    .shortcuts-tooltip {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        margin-top: 6px;
-        background: #1d2125;
-        border-radius: 8px;
-        padding: 10px 14px;
-        min-width: 200px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        z-index: 100;
-        color: #b6c2cf;
-        font-size: 0.75rem;
-        animation: fadeIn 0.15s ease-out;
-    }
-
-    .shortcuts-title {
-        font-weight: 700;
-        color: white;
-        margin-bottom: 8px;
-        font-size: 0.8rem;
-    }
-
-    .shortcut-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 4px;
-    }
-
-    .shortcut-row kbd {
-        background: rgba(255,255,255,0.12);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 4px;
-        padding: 1px 6px;
-        font-family: monospace;
-        font-size: 0.7rem;
-        color: white;
-        min-width: 24px;
-        text-align: center;
-    }
-
-    .filter-toggle {
-        position: relative;
-        color: rgba(255,255,255,0.7);
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        transition: background 0.15s, color 0.15s;
-    }
-
-    .filter-toggle:hover, .filter-toggle.active {
-        background: rgba(255,255,255,0.15);
-        color: white;
-    }
-
-    .filter-badge {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 7px;
-        height: 7px;
-        background: #ff991f;
-        border-radius: 50%;
-        border: 1.5px solid #0c66e4;
-    }
-
     .filters-panel {
         background: rgba(255,255,255,0.1);
         border-radius: 10px;
@@ -817,7 +707,6 @@ else if (columns != null)
     private Dictionary<int, string> columnNames = new();
     private UndoAction? lastAction;
     private CancellationTokenSource? undoTimerCts;
-    private bool showShortcuts;
     private bool confirmVisible;
     private string confirmTitle = string.Empty;
     private string confirmMessage = string.Empty;
@@ -1372,9 +1261,9 @@ else if (columns != null)
         };
     }
 
-    private void ToggleShortcutsHelp()
+    private void ToggleFilters()
     {
-        showShortcuts = !showShortcuts;
+        showFilters = !showFilters;
         StateHasChanged();
     }
 
