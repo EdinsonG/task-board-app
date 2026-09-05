@@ -1,15 +1,16 @@
 ﻿@inherits LayoutComponentBase
+@using task_board_client.Services
+@using task_board_client.Components
+@inject BoardService BoardService
 
 <div class="trello-app">
     <header class="trello-header">
         <div class="header-left">
-            <button class="header-icon-btn" title="Menu">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
+            <HamburgerMenu OnToggleFilters="() => BoardService.ToggleFilters()"
+                           OnExportRequested="async () => await BoardService.Export()"
+                           OnManageLabelsRequested="() => BoardService.ManageLabels()"
+                           OnNewBoardRequested="() => BoardService.NewBoard()"
+                           OnViewChanged="view => BoardService.ChangeView(view)" />
             <div class="header-logo">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                     <rect x="1" y="1" width="10" height="20" rx="2" fill="white"/>

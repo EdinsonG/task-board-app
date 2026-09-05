@@ -1,6 +1,7 @@
 ﻿@page "/"
 @inject IJSRuntime JSRuntime
 @inject KanbanService Kanban
+@inject BoardService BoardService
 @using task_board_client.Models
 @using task_board_client.Services
 @using task_board_client.Components
@@ -82,15 +83,6 @@ else if (columns != null)
 {
 <div class="board-page" @onkeydown="OnKeyDown">
     <div class="board-title-bar">
-        <HamburgerMenu Columns="columns"
-                       ViewChanged="OnViewChanged"
-                       OnNewBoardRequested="OnNewBoard"
-                       OnSettingsRequested="OnSettings"
-                       OnExportRequested="OnExport"
-                       OnManageLabelsRequested="OnManageLabels"
-                       ShowFilters="showFilters"
-                       HasActiveFilters="HasActiveFilters"
-                       OnToggleFilters="ToggleFilters" />
         <span class="board-section-title">Board</span>
         @if (isLoading)
         {
@@ -773,6 +765,11 @@ else if (columns != null)
     {
         undoTimerCts?.Cancel();
         undoTimerCts?.Dispose();
+        BoardService.OnToggleFilters -= ToggleFilters;
+        BoardService.OnExport -= OnExportAsync;
+        BoardService.OnManageLabels -= OnManageLabels;
+        BoardService.OnNewBoard -= OnNewBoard;
+        BoardService.OnViewChanged -= OnViewChanged;
     }
 
     private async Task LoadBoard()
@@ -1223,6 +1220,12 @@ else if (columns != null)
 
     protected override async Task OnInitializedAsync()
     {
+        BoardService.OnToggleFilters += ToggleFilters;
+        BoardService.OnExport += OnExportAsync;
+        BoardService.OnManageLabels += OnManageLabels;
+        BoardService.OnNewBoard += OnNewBoard;
+        BoardService.OnViewChanged += OnViewChanged;
+
         await LoadBoard();
     }
 
@@ -1367,13 +1370,13 @@ else if (columns != null)
         Move
     }
 
-    private async Task OnViewChanged(string view)
+    private void OnViewChanged(string view)
     {
         currentView = view;
         StateHasChanged();
     }
 
-    private async Task OnNewBoard()
+    private void OnNewBoard()
     {
         showAddColumn = true;
         StateHasChanged();
@@ -1383,7 +1386,7 @@ else if (columns != null)
     {
     }
 
-    private async Task OnExport()
+    private async Task OnExportAsync()
     {
         if (columns == null) return;
 

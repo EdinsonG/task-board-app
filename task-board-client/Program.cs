@@ -10,5 +10,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 var apiBaseAddress = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5032/";
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBaseAddress) });
 builder.Services.AddScoped<KanbanService>();
+builder.Services.AddScoped<BoardService>();
 
 await builder.Build().RunAsync();
